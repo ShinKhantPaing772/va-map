@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CZVG Expert Live Map</title>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIINfQGFlNTF7118Q6EisNrW6Fz1t2D5g2E="
+      crossorigin=""
+    >
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="map-shell">
+      <div id="map" aria-label="Live flight map"></div>
+
+      <section class="map-status" aria-label="Live status">
+        <div>
+          <span>Matching</span>
+          <strong id="matchCount">0</strong>
+        </div>
+        <div>
+          <span>Expert traffic</span>
+          <strong id="totalCount">0</strong>
+        </div>
+        <div>
+          <span>Updated</span>
+          <strong id="updatedAt">-</strong>
+        </div>
+      </section>
+
+      <section id="selectedPanel" class="flight-panel" aria-label="Selected flight" hidden>
+        <header class="flight-panel-header">
+          <span id="selectedRule" class="match-badge">-</span>
+          <h1 id="selectedCallsign">Unknown Flight</h1>
+          <button id="closePanelButton" class="close-button" type="button" aria-label="Close selected flight">×</button>
+        </header>
+
+        <div class="flight-panel-body">
+          <section class="pilot-strip">
+            <span>Pilot</span>
+            <strong id="pilotName">Unknown</strong>
+            <small id="pilotOrg">Organization unavailable</small>
+          </section>
+
+          <section class="route-strip" aria-label="Flight route">
+            <span class="section-label">Route</span>
+            <div class="route-track">
+              <div>
+                <strong id="originCode">----</strong>
+                <span>From</span>
+              </div>
+              <div class="route-bar" aria-hidden="true"></div>
+              <div>
+                <strong id="destinationCode">----</strong>
+                <span>To</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="metric-strip" aria-label="Flight metrics">
+            <div>
+              <span>Altitude</span>
+              <strong id="altitudeValue">-</strong>
+            </div>
+            <div>
+              <span>Speed</span>
+              <strong id="speedValue">-</strong>
+            </div>
+            <div>
+              <span>Heading</span>
+              <strong id="headingValue">-</strong>
+            </div>
+          </section>
+
+          <section class="aircraft-strip">
+            <span class="section-label">Aircraft</span>
+            <div>
+              <strong id="aircraftValue">Unknown Aircraft</strong>
+              <span id="liveryValue">Livery unavailable</span>
+            </div>
+          </section>
+
+          <section class="plan-strip">
+            <span class="section-label">Flight Plan</span>
+            <pre id="flightPlanValue">No flight plan available.</pre>
+          </section>
+        </div>
+      </section>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

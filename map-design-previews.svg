@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.22"/>
+    </filter>
+    <pattern id="scan" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0 0H12" stroke="#39ff9f" stroke-opacity=".08"/>
+    </pattern>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="#50d7ff" stroke-opacity=".16"/>
+    </pattern>
+    <linearGradient id="sat" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#355c39"/>
+      <stop offset=".45" stop-color="#7f8f66"/>
+      <stop offset="1" stop-color="#28475f"/>
+    </linearGradient>
+    <linearGradient id="cz" x1="0" x2="1">
+      <stop stop-color="#eaf7fb"/>
+      <stop offset="1" stop-color="#f8fbfd"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1440" height="980" fill="#eef2f6"/>
+  <text x="64" y="68" fill="#132033" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">Map Design Previews</text>
+  <text x="64" y="100" fill="#667085" font-family="Inter, Arial, sans-serif" font-size="18">Six possible visual directions for the CZVG live flight tracker</text>
+
+  <!-- Panel helper: each panel is 400x250 -->
+  <g transform="translate(64 140)" filter="url(#shadow)">
+    <rect width="400" height="250" rx="14" fill="#071017"/>
+    <rect width="400" height="250" rx="14" fill="url(#scan)"/>
+    <path d="M28 184C84 143 115 103 179 128C244 154 277 86 369 74" fill="none" stroke="#8aa0af" stroke-opacity=".28" stroke-width="2"/>
+    <path d="M54 52C94 69 126 84 160 61C204 31 249 50 290 83C325 111 350 123 376 111" fill="none" stroke="#8aa0af" stroke-opacity=".2" stroke-width="2"/>
+    <circle cx="200" cy="125" r="95" fill="none" stroke="#39ff9f" stroke-opacity=".15"/>
+    <circle cx="200" cy="125" r="50" fill="none" stroke="#39ff9f" stroke-opacity=".18"/>
+    <path d="M64 205L132 165L228 139L334 68" fill="none" stroke="#39ff9f" stroke-width="3" stroke-linecap="round"/>
+    <g fill="#39ff9f">
+      <text x="126" y="164" font-size="22">✈</text>
+      <text x="221" y="139" font-size="22">✈</text>
+      <text x="326" y="68" font-size="22">✈</text>
+    </g>
+    <rect x="18" y="18" width="136" height="48" rx="10" fill="#0b1821" stroke="#1d3b46"/>
+    <text x="32" y="39" fill="#9debc6" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">DARK RADAR</text>
+    <text x="32" y="56" fill="#c7d2da" font-family="Inter, Arial, sans-serif" font-size="12">Ops center feel</text>
+  </g>
+
+  <g transform="translate(520 140)" filter="url(#shadow)">
+    <rect width="400" height="250" rx="14" fill="#f9fafb"/>
+    <path d="M32 72C75 54 111 64 152 91C200 123 249 84 286 67C319 52 356 59 380 88" fill="none" stroke="#d0d7de" stroke-width="8" stroke-linecap="round"/>
+    <path d="M35 175C79 149 115 136 162 154C210 172 241 151 286 139C327 128 355 137 378 158" fill="none" stroke="#c7d2fe" stroke-width="3" stroke-linecap="round"/>
+    <path d="M58 198L151 151L246 126L343 72" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+    <g fill="#2563eb">
+      <circle cx="151" cy="151" r="7"/>
+      <circle cx="246" cy="126" r="7"/>
+      <circle cx="343" cy="72" r="7"/>
+    </g>
+    <rect x="18" y="18" width="164" height="48" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="32" y="39" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">MINIMAL DISPATCH</text>
+    <text x="32" y="56" fill="#6b7280" font-family="Inter, Arial, sans-serif" font-size="12">Clean airline tool</text>
+  </g>
+
+  <g transform="translate(976 140)" filter="url(#shadow)">
+    <rect width="400" height="250" rx="14" fill="url(#sat)"/>
+    <path d="M0 152C72 121 108 107 154 128C198 147 211 105 260 84C310 63 354 80 400 50V250H0Z" fill="#183d5a" opacity=".7"/>
+    <path d="M0 52C54 83 98 63 145 44C197 23 259 31 299 66C332 95 363 98 400 83V0H0Z" fill="#778864" opacity=".85"/>
+    <path d="M60 188L135 157L214 126L325 77" fill="none" stroke="#fffbeb" stroke-width="4" stroke-linecap="round"/>
+    <g fill="#fffbeb" stroke="#0f172a" stroke-width="2">
+      <circle cx="135" cy="157" r="9"/>
+      <circle cx="214" cy="126" r="9"/>
+      <circle cx="325" cy="77" r="9"/>
+    </g>
+    <rect x="18" y="18" width="150" height="48" rx="10" fill="rgba(15,23,42,.72)" stroke="rgba(255,255,255,.2)"/>
+    <text x="32" y="39" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">SATELLITE HYBRID</text>
+    <text x="32" y="56" fill="#dbeafe" font-family="Inter, Arial, sans-serif" font-size="12">Immersive terrain</text>
+  </g>
+
+  <g transform="translate(64 470)" filter="url(#shadow)">
+    <rect width="400" height="250" rx="14" fill="#061b33"/>
+    <rect width="400" height="250" rx="14" fill="url(#grid)"/>
+    <path d="M24 86C82 62 133 79 177 106C222 134 259 118 307 84C345 57 374 67 394 83" fill="none" stroke="#5eead4" stroke-opacity=".35" stroke-width="2"/>
+    <path d="M44 203L118 161L206 120L327 56" fill="none" stroke="#5eead4" stroke-width="3" stroke-linecap="round"/>
+    <g fill="#5eead4">
+      <path d="M118 151l16 10-16 10-4-7h-17v-6h17z"/>
+      <path d="M206 110l16 10-16 10-4-7h-17v-6h17z"/>
+      <path d="M327 46l16 10-16 10-4-7h-17v-6h17z"/>
+    </g>
+    <rect x="18" y="18" width="166" height="48" rx="10" fill="#08233f" stroke="#1e75a8"/>
+    <text x="32" y="39" fill="#7dd3fc" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">BLUEPRINT CHART</text>
+    <text x="32" y="56" fill="#bdd7ee" font-family="Inter, Arial, sans-serif" font-size="12">Aviation blueprint</text>
+  </g>
+
+  <g transform="translate(520 470)" filter="url(#shadow)">
+    <rect width="400" height="250" rx="14" fill="url(#cz)"/>
+    <path d="M0 167C55 149 98 139 144 159C196 181 238 151 281 128C327 103 361 107 400 131V250H0Z" fill="#d9eef5"/>
+    <path d="M44 199L123 159L214 128L333 73" fill="none" stroke="#007d8f" stroke-width="4" stroke-linecap="round"/>
+    <g>
+      <circle cx="123" cy="159" r="11" fill="#e60012"/>
+      <circle cx="214" cy="128" r="11" fill="#007d8f"/>
+      <circle cx="333" cy="73" r="11" fill="#e60012"/>
+    </g>
+    <rect x="18" y="18" width="190" height="48" rx="10" fill="#ffffff" stroke="#dbe4ea"/>
+    <text x="32" y="39" fill="#007d8f" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">CHINA SOUTHERN</text>
+    <text x="32" y="56" fill="#65758a" font-family="Inter, Arial, sans-serif" font-size="12">Teal with red alerts</text>
+  </g>
+
+  <g transform="translate(976 470)" filter="url(#shadow)">
+    <rect width="400" height="250" rx="14" fill="#000000"/>
+    <path d="M20 72C83 97 134 67 185 47C236 27 286 37 333 68C358 84 376 90 400 83" fill="none" stroke="#28ff6a" stroke-opacity=".28" stroke-width="2"/>
+    <path d="M0 182C63 142 114 128 174 146C230 163 265 136 311 121C351 108 377 112 400 127" fill="none" stroke="#28ff6a" stroke-opacity=".22" stroke-width="2"/>
+    <circle cx="200" cy="125" r="102" fill="none" stroke="#28ff6a" stroke-opacity=".12"/>
+    <path d="M54 201L129 162L221 117L345 55" fill="none" stroke="#28ff6a" stroke-width="2" stroke-linecap="round"/>
+    <g fill="#ffdd4a">
+      <text x="121" y="162" font-size="20">✈</text>
+      <text x="213" y="117" font-size="20">✈</text>
+      <text x="337" y="55" font-size="20">✈</text>
+    </g>
+    <rect x="18" y="18" width="154" height="48" rx="10" fill="#050505" stroke="#194d29"/>
+    <text x="32" y="39" fill="#28ff6a" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">HIGH CONTRAST ATC</text>
+    <text x="32" y="56" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="12">Maximum readability</text>
+  </g>
+
+  <text x="64" y="825" fill="#132033" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">My ranking for your app</text>
+  <text x="64" y="862" fill="#475467" font-family="Inter, Arial, sans-serif" font-size="18">1. Dark Radar: best live-tracking mood and strong marker contrast.</text>
+  <text x="64" y="894" fill="#475467" font-family="Inter, Arial, sans-serif" font-size="18">2. Blueprint Chart: distinctive aviation flavor without becoming visually noisy.</text>
+  <text x="64" y="926" fill="#475467" font-family="Inter, Arial, sans-serif" font-size="18">3. Minimal Dispatch: cleanest if this should feel like an operational dashboard.</text>
+</svg>
