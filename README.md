@@ -42,35 +42,45 @@ The API key stays on the local server and is never sent to the browser.
 
 ## Deploy
 
-This app must be deployed as a Node web service because `/ifapi` keeps the Infinite Flight API key server-side. Do not deploy it as a static-only site.
+Cloudflare Pages is the recommended host for this app. Static files are served from `public/`, and `/ifapi/*` is handled by a Cloudflare Pages Function so the Infinite Flight API key stays server-side.
 
-Recommended hosts:
+### Cloudflare Pages
 
-- Render
-- Railway
-- Fly.io
-- VPS
-
-Deploy steps:
+One-time setup:
 
 1. Push this folder to a GitHub repository.
-2. Create a Node web service on Render or Railway.
-3. Set this environment variable:
+2. Create a Cloudflare Pages project connected to the repository.
+3. Set the build output directory to `public`.
+4. Leave the build command empty, or use:
+
+```sh
+npm run check
+```
+
+5. Add this Pages environment variable or secret:
 
 ```sh
 INFINITE_FLIGHT_API_KEY=your_api_key_here
 ```
 
-4. Use these commands:
+If you deploy with Wrangler instead of the dashboard:
+
+```sh
+npm run deploy:cloudflare
+```
+
+Cloudflare does not run a long-lived Node process for this app, so there is no Render-style free instance spin-down. The `/ifapi` proxy runs on demand at the edge.
+
+### Other Hosts
+
+You can still deploy this as a Node web service on Render, Railway, Fly.io, or a VPS with:
 
 ```sh
 Build command: npm install
 Start command: npm start
 ```
 
-Use `/healthz` as the health check path if your host asks for one.
-
-The server uses `process.env.PORT`, so it works with hosts that assign a port automatically.
+Use `/healthz` as the health check path if your host asks for one. The server uses `process.env.PORT`, so it works with hosts that assign a port automatically.
 
 ## Cache Behavior
 
@@ -78,6 +88,7 @@ The proxy caches successful Infinite Flight responses:
 
 - Sessions: 10 minutes
 - Live flights: 15 seconds
+- Selected flight plans: 60 seconds
 - Aircraft reference endpoints: 24 hours
 
-The cache is in-memory inside the long-running Node process. It resets when the service restarts, which is fine for Render/Railway-style hosting.
+Local Node hosting uses an in-memory cache inside the long-running Node process. Cloudflare hosting uses the Pages Function edge cache instead.

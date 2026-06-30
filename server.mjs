@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const API_BASE = "https://api.infiniteflight.com/public/v2";
 const root = fileURLToPath(new URL(".", import.meta.url));
+const staticRoot = join(root, "public");
 await loadEnvFile(join(root, ".env"));
 const port = Number(process.env.PORT || 5173);
 const responseCache = new Map();
@@ -155,9 +156,9 @@ async function loadEnvFile(path) {
 async function serveStatic(response, pathname) {
   const requested = pathname === "/" ? "/index.html" : pathname;
   const safePath = normalize(decodeURIComponent(requested)).replace(/^(\.\.[/\\])+/, "");
-  const fullPath = join(root, safePath);
+  const fullPath = join(staticRoot, safePath);
 
-  if (!fullPath.startsWith(root)) {
+  if (!fullPath.startsWith(staticRoot)) {
     response.writeHead(403);
     response.end("Forbidden");
     return;
