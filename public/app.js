@@ -33,8 +33,6 @@ const state = {
   selectedFlightId: null,
   hasFitBounds: false,
   markers: new Map(),
-  selectedRouteLayer: null,
-  selectedRouteSignature: "",
   flights: [],
   aircraftById: new Map(),
   liveryById: new Map(),
@@ -54,7 +52,6 @@ const map = L.map("map", {
 }).setView([31.2, 105.9], 4);
 
 L.control.zoom({ position: "bottomright" }).addTo(map);
-state.selectedRouteLayer = L.layerGroup().addTo(map);
 
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", {
   maxZoom: 19,
@@ -82,7 +79,6 @@ document.addEventListener("keydown", resetIdleTimer);
 
 function closeSelectedFlight() {
   state.selectedFlightId = null;
-  clearSelectedRoute();
   renderSelectedFlight(null);
 }
 
@@ -108,7 +104,6 @@ function stopTracking(message) {
   state.selectedFlightId = null;
   window.clearTimeout(state.refreshTimer);
   window.clearTimeout(state.idleTimer);
-  clearSelectedRoute();
   renderSelectedFlight(null);
   if (message) showToast(message);
 }
@@ -346,7 +341,7 @@ function selectFlight(id, options = {}) {
   if (!flight) return;
 
   state.selectedFlightId = flightId;
-  renderSelectedFlight(flight, { fitRoute: true });
+  renderSelectedFlight(flight);
   hydrateAircraftForFlight(flight);
 
   if (stored) {
@@ -364,12 +359,11 @@ function syncSelectedFlight() {
     hydrateAircraftForFlight(flight);
   } else {
     state.selectedFlightId = null;
-    clearSelectedRoute();
     renderSelectedFlight(null);
   }
 }
 
-function renderSelectedFlight(flight, options = {}) {
+function renderSelectedFlight(flight) {
   if (!flight) {
     elements.selectedPanel.hidden = true;
     return;
@@ -377,7 +371,6 @@ function renderSelectedFlight(flight, options = {}) {
 
   const details = getFlightDetails(flight);
   hydrateFlightPlanForFlight(flight);
-  renderSelectedRoute(flight, { fit: Boolean(options.fitRoute) });
   elements.selectedPanel.hidden = false;
   elements.selectedRule.textContent = flight.matchReason;
   elements.selectedCallsign.textContent = details.callsign;
@@ -391,132 +384,6 @@ function renderSelectedFlight(flight, options = {}) {
   elements.flightPlanValue.textContent = details.flightPlan;
   elements.aircraftValue.textContent = details.aircraft;
   elements.liveryValue.textContent = details.livery;
-}
-
-function clearSelectedRoute() {
-  if (!state.selectedRouteLayer) return;
-  state.selectedRouteLayer.clearLayers();
-  state.selectedRouteSignature = "";
-}
-
-function renderSelectedRoute(flight, options = {}) {
-  if (!state.selectedRouteLayer) return;
-  state.selectedRouteLayer.clearLayers();
-
-  const flightPlan = state.flightPlansByFlightId.get(getFlightId(flight)) || flight.flightPlan || {};
-  const waypoints = getDrawableWaypoints(flightPlan);
-  if (!waypoints.length) {
-    state.selectedRouteSignature = "";
-    return;
-  }
-
-  const routePoints = waypoints.map((waypoint) => [waypoint.lat, waypoint.lng]);
-  const currentPoint = getFlightLatLng(flight);
-  const linePoints = currentPoint ? [currentPoint, ...routePoints] : routePoints;
-
-  if (linePoints.length > 1) {
-    L.polyline(linePoints, {
-      className: "selected-route-line",
-      color: "#0ea5e9",
-      dashArray: currentPoint ? "5 8" : null,
-      interactive: false,
-      opacity: 0.88,
-      weight: 3,
-    }).addTo(state.selectedRouteLayer);
-  }
-
-  const signature = routePoints.map((point) => point.join(",")).join("|");
-  if (options.fit || signature !== state.selectedRouteSignature) {
-    const fitPoints = currentPoint ? [currentPoint, ...routePoints] : routePoints;
-    fitSelectedRoute(fitPoints);
-  }
-  state.selectedRouteSignature = signature;
-}
-
-function fitSelectedRoute(points) {
-  if (!points.length) return;
-  if (points.length === 1) {
-    map.setView(points[0], Math.max(map.getZoom(), 7), { animate: true });
-    return;
-  }
-
-  map.fitBounds(L.latLngBounds(points), {
-    animate: true,
-    maxZoom: 9,
-    paddingBottomRight: [80, 80],
-    paddingTopLeft: [440, 90],
-  });
-}
-
-function getDrawableWaypoints(flightPlan) {
-  return getFlightPlanItems(flightPlan)
-    .map((item, index) => {
-      const point = getLatLngFromItem(item);
-      if (!point) return null;
-      return {
-        ...point,
-        label: firstText(item.identifier, item.name, item.code, item.type, `WP${index + 1}`),
-      };
-    })
-    .filter(Boolean);
-}
-
-function getFlightPlanItems(flightPlan) {
-  const candidates = [
-    flightPlan.flightPlanItems,
-    flightPlan.waypoints,
-    flightPlan.points,
-  ];
-
-  return candidates.flatMap((candidate) => (Array.isArray(candidate) ? candidate : []));
-}
-
-function getFlightLatLng(flight) {
-  const lat = Number(flight.latitude);
-  const lng = Number(flight.longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return [lat, lng];
-}
-
-function getLatLngFromItem(item) {
-  if (Array.isArray(item)) {
-    const lat = firstNumber(item[0], item[1]?.latitude, item[1]?.lat);
-    const lng = firstNumber(item[1], item[1]?.longitude, item[1]?.lon, item[1]?.lng);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-    return null;
-  }
-  if (!item || typeof item !== "object") return null;
-  const lat = firstNumber(
-    item.latitude,
-    item.lat,
-    item.location?.latitude,
-    item.location?.lat,
-    item.coordinate?.latitude,
-    item.coordinate?.lat,
-    item.coordinates?.latitude,
-    item.coordinates?.lat,
-    item.position?.latitude,
-    item.position?.lat,
-  );
-  const lng = firstNumber(
-    item.longitude,
-    item.lon,
-    item.lng,
-    item.location?.longitude,
-    item.location?.lon,
-    item.location?.lng,
-    item.coordinate?.longitude,
-    item.coordinate?.lon,
-    item.coordinate?.lng,
-    item.coordinates?.longitude,
-    item.coordinates?.lon,
-    item.coordinates?.lng,
-    item.position?.longitude,
-    item.position?.lon,
-    item.position?.lng,
-  );
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return { lat, lng };
 }
 
 function fitToFlights() {
@@ -535,15 +402,6 @@ function formatNumber(value, suffix) {
   const number = Number(value);
   if (!Number.isFinite(number)) return "-";
   return `${Math.round(number).toLocaleString()}${suffix}`;
-}
-
-function firstNumber(...values) {
-  for (const value of values) {
-    if (value === undefined || value === null || String(value).trim() === "") continue;
-    const number = Number(value);
-    if (Number.isFinite(number)) return number;
-  }
-  return NaN;
 }
 
 function formatCoordinate(value) {
