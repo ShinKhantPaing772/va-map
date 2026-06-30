@@ -7,6 +7,7 @@
   --panel-strong: rgba(255, 255, 255, 0.94);
   --surface: rgba(23, 32, 51, 0.055);
   --accent: #0ea5e9;
+  --czvg-blue: #017bbd;
   --green: #14b981;
   --cyan: #0ea5e9;
   --gold: #f2be3d;
@@ -96,7 +97,7 @@ button {
 
 .flight-panel {
   position: absolute;
-  right: 18px;
+  left: 18px;
   bottom: 18px;
   z-index: 6;
   width: min(400px, calc(100vw - 36px));
@@ -258,7 +259,7 @@ button {
 
 .toast {
   position: absolute;
-  left: 16px;
+  right: 16px;
   bottom: 16px;
   z-index: 7;
   max-width: min(520px, calc(100% - 32px));
@@ -282,24 +283,32 @@ button {
 .plane-marker {
   display: grid;
   place-items: center;
+  width: 42px;
+  height: 42px;
+  color: var(--czvg-blue);
+  cursor: pointer;
+  transform: rotate(var(--heading, 0deg));
+  transform-origin: center;
+}
+
+.plane-marker svg {
   width: 34px;
   height: 34px;
-  color: #ffffff;
-  background: var(--green);
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.16), 0 10px 28px rgba(23, 32, 51, 0.26);
-  font-size: 18px;
-  font-weight: 900;
-  cursor: pointer;
+  fill: currentColor;
+  filter: drop-shadow(0 2px 3px rgba(23, 32, 51, 0.36)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.9));
+  transform: translateY(-1px);
 }
 
 .plane-marker.reason-vg {
-  background: var(--cyan);
+  color: var(--czvg-blue);
 }
 
 .plane-marker.reason-cz {
-  background: var(--gold);
+  color: var(--czvg-blue);
+}
+
+.selected-route-line {
+  filter: drop-shadow(0 2px 5px rgba(14, 165, 233, 0.28));
 }
 
 .leaflet-container {
@@ -471,6 +480,7 @@ button {
 
   .flight-panel {
     position: relative;
+    left: auto;
     right: auto;
     bottom: auto;
     width: calc(100% - 20px);
