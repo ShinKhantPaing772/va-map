@@ -12,6 +12,7 @@ const responseCache = new Map();
 const CACHE_TTL = {
   sessions: 10 * 60 * 1000,
   flights: 15 * 1000,
+  flightPlans: 60 * 1000,
   aircraft: 24 * 60 * 60 * 1000,
 };
 
@@ -113,6 +114,7 @@ async function proxyInfiniteFlight(request, response, url) {
 function getCacheTtl(apiPath) {
   if (apiPath === "/sessions") return CACHE_TTL.sessions;
   if (/^\/sessions\/[^/]+\/flights$/.test(apiPath)) return CACHE_TTL.flights;
+  if (/^\/sessions\/[^/]+\/flights\/[^/]+\/flightplan$/.test(apiPath)) return CACHE_TTL.flightPlans;
   if (apiPath === "/aircraft" || apiPath.startsWith("/aircraft/")) return CACHE_TTL.aircraft;
   return 0;
 }

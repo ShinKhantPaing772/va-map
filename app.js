@@ -38,6 +38,8 @@ const state = {
   liveryById: new Map(),
   liveriesByAircraftId: new Map(),
   requestedAircraftLiveries: new Set(),
+  flightPlansByFlightId: new Map(),
+  requestedFlightPlans: new Set(),
   referenceDataLoaded: false,
   refreshTimer: null,
   idleTimer: null,
@@ -70,13 +72,21 @@ window.addEventListener("load", () => map.invalidateSize());
 window.addEventListener("resize", () => map.invalidateSize());
 window.addEventListener("load", () => startTracking());
 
-elements.closePanelButton.addEventListener("click", () => {
-  state.selectedFlightId = null;
-  renderSelectedFlight(null);
+elements.closePanelButton.addEventListener("click", closeSelectedFlight);
+
+document.addEventListener("pointerdown", (event) => {
+  if (!state.selectedFlightId) return;
+  if (elements.selectedPanel.contains(event.target)) return;
+  closeSelectedFlight();
 });
 
 document.addEventListener("pointerdown", resetIdleTimer, { passive: true });
 document.addEventListener("keydown", resetIdleTimer);
+
+function closeSelectedFlight() {
+  state.selectedFlightId = null;
+  renderSelectedFlight(null);
+}
 
 async function startTracking() {
   state.running = true;
@@ -354,6 +364,7 @@ function renderSelectedFlight(flight) {
   }
 
   const details = getFlightDetails(flight);
+  hydrateFlightPlanForFlight(flight);
   elements.selectedPanel.hidden = false;
   elements.selectedRule.textContent = flight.matchReason;
   elements.selectedCallsign.textContent = details.callsign;
@@ -401,29 +412,39 @@ function showToast(message) {
 }
 
 function getFlightDetails(flight) {
-  const flightPlan = flight.flightPlan || {};
+  const flightId = getFlightId(flight);
+  const flightPlan = state.flightPlansByFlightId.get(flightId) || flight.flightPlan || {};
   const aircraft = getAircraftInfo(flight);
   const origin = firstText(
     flightPlan.originAirport,
     flightPlan.originAirportIdentifier,
+    flightPlan.originInfo?.icao,
+    flightPlan.originInfo?.identifier,
+    flightPlan.originInfo?.name,
     flightPlan.departureAirport,
     flightPlan.departureAirportIdentifier,
     flight.originAirport,
     flight.departureAirport,
     flight.departure,
+    getRouteEndpoint(flightPlan, "first"),
   );
   const destination = firstText(
     flightPlan.destinationAirport,
     flightPlan.destinationAirportIdentifier,
+    flightPlan.destinationInfo?.icao,
+    flightPlan.destinationInfo?.identifier,
+    flightPlan.destinationInfo?.name,
     flightPlan.arrivalAirport,
     flightPlan.arrivalAirportIdentifier,
     flight.destinationAirport,
     flight.arrivalAirport,
     flight.destination,
+    getRouteEndpoint(flightPlan, "last"),
   );
   const route = firstText(
     flightPlan.route,
     flightPlan.waypoints,
+    getFlightPlanItemRoute(flightPlan),
     flightPlan.flightPlan,
     flight.route,
   );
@@ -438,6 +459,57 @@ function getFlightDetails(flight) {
     aircraft: aircraft.name,
     livery: aircraft.livery,
   };
+}
+
+function getFlightId(flight) {
+  return String(flight.flightId || flight.id || flight.callsign || "");
+}
+
+async function hydrateFlightPlanForFlight(flight) {
+  const flightId = getFlightId(flight);
+  if (!flightId || !state.expertSessionId || state.flightPlansByFlightId.has(flightId) || state.requestedFlightPlans.has(flightId)) {
+    return;
+  }
+
+  state.requestedFlightPlans.add(flightId);
+
+  try {
+    const payload = await request(`/sessions/${state.expertSessionId}/flights/${flightId}/flightplan`);
+    const flightPlan = payload.result && typeof payload.result === "object" ? payload.result : {};
+    state.flightPlansByFlightId.set(flightId, flightPlan);
+
+    if (String(state.selectedFlightId) === flightId) {
+      const selected = state.flights.find((item) => getFlightId(item) === flightId);
+      if (selected) renderSelectedFlight(selected);
+    }
+  } catch (error) {
+    state.flightPlansByFlightId.set(flightId, {});
+  }
+}
+
+function getRouteEndpoint(flightPlan, position) {
+  const waypoints = normalizeRouteValues(flightPlan.waypoints);
+  if (waypoints.length) return position === "first" ? waypoints[0] : waypoints[waypoints.length - 1];
+
+  const items = Array.isArray(flightPlan.flightPlanItems) ? flightPlan.flightPlanItems : [];
+  const identifiers = items.map((item) => firstText(item.identifier, item.name)).filter(Boolean);
+  if (!identifiers.length) return "";
+  return position === "first" ? identifiers[0] : identifiers[identifiers.length - 1];
+}
+
+function getFlightPlanItemRoute(flightPlan) {
+  const waypoints = normalizeRouteValues(flightPlan.waypoints);
+  if (waypoints.length) return waypoints.join(" ");
+
+  const items = Array.isArray(flightPlan.flightPlanItems) ? flightPlan.flightPlanItems : [];
+  return items.map((item) => firstText(item.identifier, item.name)).filter(Boolean).join(" ");
+}
+
+function normalizeRouteValues(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => firstText(item)).filter(Boolean);
+  }
+  return firstText(value).split(/\s+/).filter(Boolean);
 }
 
 function getAircraftInfo(flight) {

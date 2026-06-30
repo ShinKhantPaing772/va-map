@@ -114,10 +114,11 @@ button {
 }
 
 .flight-panel-header {
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   gap: 8px 14px;
-  padding: 14px 14px 12px;
+  padding: 14px 58px 12px 14px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -143,6 +144,9 @@ button {
 }
 
 .close-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
   display: inline-grid;
   place-items: center;
   width: 34px;
@@ -242,7 +246,11 @@ button {
   margin: 9px 0 0;
   max-height: 104px;
   overflow: auto;
-  color: #dce7ef;
+  padding: 9px 10px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  border-radius: 8px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: 700 0.86rem/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
