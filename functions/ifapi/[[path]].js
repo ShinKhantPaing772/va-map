@@ -47,6 +47,7 @@ export async function onRequest(context) {
   const responseHeaders = new Headers({
     "Content-Type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
     "Cache-Control": upstream.ok && ttl > 0 ? `public, max-age=${ttl}` : "no-store",
+    "X-Proxy-Fetched-At": new Date().toISOString(),
     "X-Proxy-Cache": "MISS",
   });
   const response = new Response(upstream.body, {

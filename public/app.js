@@ -116,7 +116,7 @@ async function refreshFlights() {
     await loadExpertSession();
   }
 
-  const payload = await request(`/sessions/${state.expertSessionId}/flights`);
+  const { payload, fetchedAt, cacheStatus } = await request(`/sessions/${state.expertSessionId}/flights`, { includeMeta: true });
   const flights = Array.isArray(payload.result) ? payload.result : [];
   const matchingFlights = flights
     .map((flight) => ({ ...flight, matchReason: getMatchReason(flight) }))
@@ -126,11 +126,8 @@ async function refreshFlights() {
   state.flights = matchingFlights;
   elements.totalCount.textContent = String(flights.length);
   elements.matchCount.textContent = String(matchingFlights.length);
-  elements.updatedAt.textContent = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(new Date());
+  elements.updatedAt.textContent = formatUpdatedAt(fetchedAt);
+  elements.updatedAt.title = cacheStatus ? `Proxy cache: ${cacheStatus}` : "";
 
   renderMarkers(matchingFlights);
   syncSelectedFlight();
@@ -158,7 +155,7 @@ async function loadExpertSession() {
   showToast(`Connected to ${expert.name || EXPERT_NAME}.`);
 }
 
-async function request(path) {
+async function request(path, options = {}) {
   const response = await fetch(`${PROXY_API_BASE}${path}`);
 
   if (!response.ok) {
@@ -178,7 +175,24 @@ async function request(path) {
   if (payload.errorCode || payload.errorMessage) {
     throw new Error(payload.errorMessage || `Infinite Flight API error ${payload.errorCode}.`);
   }
+  if (options.includeMeta) {
+    return {
+      payload,
+      fetchedAt: response.headers.get("X-Proxy-Fetched-At") || response.headers.get("Date"),
+      cacheStatus: response.headers.get("X-Proxy-Cache") || "",
+    };
+  }
   return payload;
+}
+
+function formatUpdatedAt(value) {
+  const date = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(safeDate);
 }
 
 async function loadReferenceData() {

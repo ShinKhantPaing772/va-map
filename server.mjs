@@ -94,6 +94,7 @@ async function proxyInfiniteFlight(request, response, url) {
   const responseHeaders = {
     "Content-Type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
     "Cache-Control": shouldCache ? `private, max-age=${Math.floor(ttl / 1000)}` : "no-store",
+    "X-Proxy-Fetched-At": new Date().toISOString(),
   };
 
   if (shouldCache) {
