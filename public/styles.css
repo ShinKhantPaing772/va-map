@@ -280,6 +280,72 @@ button {
   transform: translateY(0);
 }
 
+.inactivity-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(237, 243, 246, 0.68);
+  backdrop-filter: blur(12px);
+}
+
+.inactivity-overlay[hidden] {
+  display: none;
+}
+
+.inactivity-panel {
+  width: min(430px, 100%);
+  padding: 24px;
+  color: var(--text);
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.inactivity-panel span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.inactivity-panel h1 {
+  margin: 8px 0 0;
+  font-size: 1.85rem;
+  line-height: 1.05;
+}
+
+.inactivity-panel p {
+  margin: 10px 0 18px;
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.inactivity-panel button {
+  display: inline-grid;
+  place-items: center;
+  min-height: 42px;
+  width: 100%;
+  padding: 10px 14px;
+  color: #ffffff;
+  background: var(--czvg-blue);
+  border: 1px solid rgba(1, 123, 189, 0.38);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.inactivity-panel button:hover,
+.inactivity-panel button:focus {
+  background: #0369a1;
+}
+
 .plane-marker {
   display: grid;
   place-items: center;

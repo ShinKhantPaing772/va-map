@@ -8,6 +8,8 @@ const elements = {
   matchCount: document.querySelector("#matchCount"),
   totalCount: document.querySelector("#totalCount"),
   updatedAt: document.querySelector("#updatedAt"),
+  inactivityOverlay: document.querySelector("#inactivityOverlay"),
+  resumeTrackingButton: document.querySelector("#resumeTrackingButton"),
   selectedPanel: document.querySelector("#selectedPanel"),
   selectedRule: document.querySelector("#selectedRule"),
   selectedCallsign: document.querySelector("#selectedCallsign"),
@@ -73,6 +75,7 @@ window.addEventListener("resize", () => map.invalidateSize());
 window.addEventListener("load", () => startTracking());
 
 elements.closePanelButton.addEventListener("click", closeSelectedFlight);
+elements.resumeTrackingButton.addEventListener("click", resumeTracking);
 
 document.addEventListener("pointerdown", resetIdleTimer, { passive: true });
 document.addEventListener("keydown", resetIdleTimer);
@@ -87,6 +90,7 @@ async function startTracking() {
   state.paused = false;
   state.sessionLastLoaded = 0;
   state.hasFitBounds = false;
+  setInactivityOverlay(false);
 
   resetIdleTimer();
 
@@ -104,8 +108,34 @@ function stopTracking(message) {
   state.selectedFlightId = null;
   window.clearTimeout(state.refreshTimer);
   window.clearTimeout(state.idleTimer);
+  setInactivityOverlay(false);
   renderSelectedFlight(null);
   if (message) showToast(message);
+}
+
+function pauseTrackingForInactivity() {
+  if (!state.running || state.paused) return;
+  state.paused = true;
+  window.clearTimeout(state.refreshTimer);
+  window.clearTimeout(state.idleTimer);
+  setInactivityOverlay(true);
+}
+
+function resumeTracking() {
+  if (!state.running || !state.paused) return;
+  state.paused = false;
+  setInactivityOverlay(false);
+  resetIdleTimer();
+  refreshFlights().catch((error) => {
+    stopTracking(error.message || "Unable to resume live updates.");
+  });
+}
+
+function setInactivityOverlay(visible) {
+  elements.inactivityOverlay.hidden = !visible;
+  if (visible) {
+    window.setTimeout(() => elements.resumeTrackingButton.focus(), 0);
+  }
 }
 
 async function refreshFlights() {
@@ -114,9 +144,12 @@ async function refreshFlights() {
   const now = Date.now();
   if (!state.expertSessionId || now - state.sessionLastLoaded > SESSION_REFRESH_MS) {
     await loadExpertSession();
+    if (!state.running || state.paused) return;
   }
 
   const { payload, fetchedAt, cacheStatus } = await request(`/sessions/${state.expertSessionId}/flights`, { includeMeta: true });
+  if (!state.running || state.paused) return;
+
   const flights = Array.isArray(payload.result) ? payload.result : [];
   const matchingFlights = flights
     .map((flight) => ({ ...flight, matchReason: getMatchReason(flight) }))
@@ -236,11 +269,9 @@ function scheduleFlightRefresh(delay) {
 }
 
 function resetIdleTimer() {
-  if (!state.running) return;
+  if (!state.running || state.paused) return;
   window.clearTimeout(state.idleTimer);
-  state.idleTimer = window.setTimeout(() => {
-    stopTracking("Stopped after 15 minutes without interaction.");
-  }, IDLE_STOP_MS);
+  state.idleTimer = window.setTimeout(pauseTrackingForInactivity, IDLE_STOP_MS);
 }
 
 function getMatchReason(flight) {

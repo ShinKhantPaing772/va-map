@@ -32,6 +32,15 @@
         </div>
       </section>
 
+      <section id="inactivityOverlay" class="inactivity-overlay" role="dialog" aria-modal="true" aria-labelledby="inactivityTitle" hidden>
+        <div class="inactivity-panel">
+          <span>Live updates paused</span>
+          <h1 id="inactivityTitle">Are you still there?</h1>
+          <p>Fetching stopped after 15 minutes without activity.</p>
+          <button id="resumeTrackingButton" type="button">Resume live map</button>
+        </div>
+      </section>
+
       <section id="selectedPanel" class="flight-panel" aria-label="Selected flight" hidden>
         <header class="flight-panel-header">
           <span id="selectedRule" class="match-badge">-</span>
