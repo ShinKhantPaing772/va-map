@@ -11,41 +11,64 @@
       integrity="sha256-p4NxAoJBhIINfQGFlNTF7118Q6EisNrW6Fz1t2D5g2E="
       crossorigin=""
     >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Inter:wght@500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,600,1,0" rel="stylesheet">
     <link rel="stylesheet" href="./styles.css">
   </head>
-  <body>
-    <main class="map-shell">
+  <body class="is-loading">
+    <main class="map-shell" aria-busy="true">
       <div id="map" aria-label="Live flight map"></div>
 
-      <section class="map-status" aria-label="Live status">
-        <div>
-          <span>CZVG's Pilots</span>
-          <strong id="matchCount">0</strong>
+      <header class="command-bar" aria-label="CZVG live map status">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">CZ</span>
+          <span class="brand-copy">
+            <strong>CZVG</strong>
+            <small>Expert Live Map</small>
+          </span>
+          <span id="connectionStatus" class="live-indicator" data-state="connecting"><i aria-hidden="true"></i><span id="connectionLabel">Connecting</span></span>
         </div>
-        <div>
-          <span>Expert traffic</span>
-          <strong id="totalCount">0</strong>
-        </div>
-        <div>
-          <span>Updated</span>
-          <strong id="updatedAt">-</strong>
-        </div>
-      </section>
+
+        <section class="map-status" aria-label="Live status">
+          <div>
+            <span>CZVG Online</span>
+            <strong id="matchCount">0</strong>
+          </div>
+          <div>
+            <span>Expert Server</span>
+            <strong id="totalCount">0</strong>
+          </div>
+          <div class="updated-status">
+            <span>Updated</span>
+            <strong id="updatedAt">-</strong>
+          </div>
+        </section>
+      </header>
+
+      <nav class="map-tools" aria-label="Map controls">
+        <button id="zoomInButton" type="button" aria-label="Zoom in"><span class="material-symbols-rounded" aria-hidden="true">add</span></button>
+        <button id="zoomOutButton" type="button" aria-label="Zoom out"><span class="material-symbols-rounded" aria-hidden="true">remove</span></button>
+        <button id="resetMapButton" type="button" aria-label="Fit map to active flights"><span class="material-symbols-rounded" aria-hidden="true">my_location</span></button>
+      </nav>
 
       <section id="inactivityOverlay" class="inactivity-overlay" role="dialog" aria-modal="true" aria-labelledby="inactivityTitle" hidden>
         <div class="inactivity-panel">
           <span>Live updates paused</span>
           <h1 id="inactivityTitle">Are you still there?</h1>
-          <p>Fetching stopped after 15 minutes without activity.</p>
+          <p>Fetching stopped after 5 minutes without activity.</p>
           <button id="resumeTrackingButton" type="button">Resume live map</button>
         </div>
       </section>
 
       <section id="selectedPanel" class="flight-panel" aria-label="Selected flight" hidden>
         <header class="flight-panel-header">
-          <span id="selectedRule" class="match-badge">-</span>
-          <h1 id="selectedCallsign">Unknown Flight</h1>
-          <button id="closePanelButton" class="close-button" type="button" aria-label="Close selected flight">×</button>
+          <div>
+            <span id="selectedRule" class="match-badge">-</span>
+            <span class="panel-eyebrow">Selected aircraft</span>
+            <h1 id="selectedCallsign">Unknown Flight</h1>
+          </div>
+          <button id="closePanelButton" class="close-button" type="button" aria-label="Close selected flight"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>
         </header>
 
         <div class="flight-panel-body">
@@ -56,13 +79,15 @@
           </section>
 
           <section class="route-strip" aria-label="Flight route">
-            <span class="section-label">Route</span>
+            <span class="section-label"><span class="material-symbols-rounded" aria-hidden="true">route</span>Route</span>
             <div class="route-track">
               <div>
                 <strong id="originCode">----</strong>
                 <span>From</span>
               </div>
-              <div class="route-bar" aria-hidden="true"></div>
+              <div id="routeProgressBar" class="route-bar" role="progressbar" aria-label="Route progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span aria-hidden="true"></span>
+              </div>
               <div>
                 <strong id="destinationCode">----</strong>
                 <span>To</span>
@@ -85,8 +110,41 @@
             </div>
           </section>
 
+          <section class="journey-strip" aria-label="Estimated route progress">
+            <div class="journey-heading">
+              <span class="section-label"><span class="material-symbols-rounded" aria-hidden="true">timeline</span>Route Progress</span>
+              <small id="routeEstimateStatus">Loading route…</small>
+            </div>
+            <div class="journey-grid">
+              <div>
+                <span>Planned Distance</span>
+                <strong id="plannedDistanceValue">-</strong>
+              </div>
+              <div>
+                <span>Travelled Distance</span>
+                <strong id="travelledDistanceValue">-</strong>
+              </div>
+              <div>
+                <span>Remaining Distance</span>
+                <strong id="remainingDistanceValue">-</strong>
+              </div>
+              <div>
+                <span>Progress</span>
+                <strong id="routeProgressValue">-</strong>
+              </div>
+              <div>
+                <span>Time Remaining</span>
+                <strong id="remainingTimeValue">-</strong>
+              </div>
+              <div>
+                <span>ETA</span>
+                <strong id="etaValue">-</strong>
+              </div>
+            </div>
+          </section>
+
           <section class="aircraft-strip">
-            <span class="section-label">Aircraft</span>
+            <span class="section-label"><span class="material-symbols-rounded" aria-hidden="true">flight</span>Aircraft</span>
             <div>
               <strong id="aircraftValue">Unknown Aircraft</strong>
               <span id="liveryValue">Livery unavailable</span>
@@ -94,7 +152,7 @@
           </section>
 
           <section class="plan-strip">
-            <span class="section-label">Flight Plan</span>
+            <span class="section-label"><span class="material-symbols-rounded" aria-hidden="true">conversion_path</span>Flight Plan</span>
             <pre id="flightPlanValue">No flight plan available.</pre>
           </section>
         </div>
