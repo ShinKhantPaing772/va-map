@@ -48,6 +48,7 @@ const state = {
   expertSessionId: null,
   sessionLastLoaded: 0,
   selectedFlightId: null,
+  selectedRouteLayer: null,
   hasFitBounds: false,
   markers: new Map(),
   flights: [],
@@ -67,6 +68,10 @@ const map = L.map("map", {
   zoomControl: false,
   preferCanvas: true,
 }).setView([31.2, 105.9], 4);
+
+const selectedRoutePane = map.createPane("selectedRoute");
+selectedRoutePane.style.zIndex = "450";
+selectedRoutePane.style.pointerEvents = "none";
 
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", {
   maxZoom: 19,
@@ -488,6 +493,7 @@ function syncSelectedFlight() {
 function renderSelectedFlight(flight) {
   if (!flight) {
     elements.selectedPanel.hidden = true;
+    clearSelectedRoute();
     return;
   }
 
@@ -504,9 +510,73 @@ function renderSelectedFlight(flight) {
   elements.speedValue.textContent = formatNumber(flight.speed, " kts");
   elements.headingValue.textContent = formatNumber(flight.heading, "°");
   renderRouteMetrics(flight);
+  renderSelectedRoute(flight);
   elements.flightPlanValue.textContent = details.flightPlan;
   elements.aircraftValue.textContent = details.aircraft;
   elements.liveryValue.textContent = details.livery;
+}
+
+function renderSelectedRoute(flight) {
+  clearSelectedRoute();
+  const flightPlan = state.flightPlansByFlightId.get(getFlightId(flight));
+  if (!flightPlan) return;
+
+  const routePoints = getFlightPlanCoordinates(flightPlan);
+  if (routePoints.length < 2) return;
+
+  const latLngs = getMapRouteLatLngs(routePoints, Number(flight.longitude));
+  const routeLayer = L.layerGroup();
+
+  L.polyline(latLngs, {
+    pane: "selectedRoute",
+    interactive: false,
+    color: "#ffffff",
+    weight: 4,
+    opacity: 0.68,
+    dashArray: "1 7",
+    lineCap: "round",
+    lineJoin: "round",
+  }).addTo(routeLayer);
+
+  L.polyline(latLngs, {
+    pane: "selectedRoute",
+    interactive: false,
+    color: "#0ea5e9",
+    weight: 2,
+    opacity: 0.92,
+    dashArray: "1 7",
+    lineCap: "round",
+    lineJoin: "round",
+  }).addTo(routeLayer);
+
+  routeLayer.addTo(map);
+  state.selectedRouteLayer = routeLayer;
+}
+
+function clearSelectedRoute() {
+  if (!state.selectedRouteLayer) return;
+  map.removeLayer(state.selectedRouteLayer);
+  state.selectedRouteLayer = null;
+}
+
+function getMapRouteLatLngs(routePoints, aircraftLongitude) {
+  const first = routePoints[0];
+  let previousLongitude = first.longitude;
+
+  if (Number.isFinite(aircraftLongitude)) {
+    while (previousLongitude - aircraftLongitude > 180) previousLongitude -= 360;
+    while (previousLongitude - aircraftLongitude < -180) previousLongitude += 360;
+  }
+
+  return routePoints.map((point, index) => {
+    let longitude = index === 0 ? previousLongitude : point.longitude;
+    if (index > 0) {
+      while (longitude - previousLongitude > 180) longitude -= 360;
+      while (longitude - previousLongitude < -180) longitude += 360;
+    }
+    previousLongitude = longitude;
+    return [point.latitude, longitude];
+  });
 }
 
 function renderRouteMetrics(flight) {
