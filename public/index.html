@@ -52,6 +52,34 @@
         <button id="resetMapButton" type="button" aria-label="Fit map to active flights"><span class="material-symbols-rounded" aria-hidden="true">my_location</span></button>
       </nav>
 
+      <button id="showSidebarButton" class="show-sidebar-button" type="button" aria-controls="flightsSidebar" aria-expanded="false">
+        <span class="material-symbols-rounded" aria-hidden="true">group</span>
+        <span>Pilots</span>
+        <strong id="sidebarToggleCount">0</strong>
+      </button>
+
+      <aside id="flightsSidebar" class="flights-sidebar" aria-labelledby="flightsSidebarTitle">
+        <header class="flights-sidebar-header">
+          <div>
+            <span class="sidebar-eyebrow">Live roster</span>
+            <h2 id="flightsSidebarTitle">CZVG Pilots</h2>
+          </div>
+          <div class="flights-sidebar-actions">
+            <span id="sidebarFlightCount" class="sidebar-count" aria-label="0 active flights">0</span>
+            <button id="hideSidebarButton" class="hide-sidebar-button" type="button" aria-label="Hide pilot list" aria-controls="flightsSidebar">
+              <span class="material-symbols-rounded" aria-hidden="true">right_panel_close</span>
+            </button>
+          </div>
+        </header>
+        <div id="flightsList" class="flights-list" aria-live="polite" aria-label="CZVG pilot flights">
+          <div class="flights-list-empty">
+            <span class="material-symbols-rounded" aria-hidden="true">radar</span>
+            <strong>Scanning Expert Server</strong>
+            <span>Active CZVG flights will appear here.</span>
+          </div>
+        </div>
+      </aside>
+
       <section id="inactivityOverlay" class="inactivity-overlay" role="dialog" aria-modal="true" aria-labelledby="inactivityTitle" hidden>
         <div class="inactivity-panel">
           <span>Live updates paused</span>

@@ -2,6 +2,7 @@ const PROXY_API_BASE = "/ifapi";
 const SESSION_REFRESH_MS = 10 * 60 * 1000;
 const FLIGHT_REFRESH_MS = 15 * 1000;
 const IDLE_STOP_MS = 5 * 60 * 1000;
+const SIDEBAR_STORAGE_KEY = "czvg-pilot-sidebar-hidden";
 const EXPERT_NAME = "Expert Server";
 const EARTH_RADIUS_NM = 3440.065;
 
@@ -13,6 +14,11 @@ const elements = {
   zoomInButton: document.querySelector("#zoomInButton"),
   zoomOutButton: document.querySelector("#zoomOutButton"),
   resetMapButton: document.querySelector("#resetMapButton"),
+  flightsList: document.querySelector("#flightsList"),
+  sidebarFlightCount: document.querySelector("#sidebarFlightCount"),
+  sidebarToggleCount: document.querySelector("#sidebarToggleCount"),
+  hideSidebarButton: document.querySelector("#hideSidebarButton"),
+  showSidebarButton: document.querySelector("#showSidebarButton"),
   connectionStatus: document.querySelector("#connectionStatus"),
   connectionLabel: document.querySelector("#connectionLabel"),
   inactivityOverlay: document.querySelector("#inactivityOverlay"),
@@ -97,6 +103,10 @@ elements.resumeTrackingButton.addEventListener("click", resumeTracking);
 elements.zoomInButton.addEventListener("click", () => map.zoomIn());
 elements.zoomOutButton.addEventListener("click", () => map.zoomOut());
 elements.resetMapButton.addEventListener("click", fitToFlights);
+elements.hideSidebarButton.addEventListener("click", () => setSidebarHidden(true));
+elements.showSidebarButton.addEventListener("click", () => setSidebarHidden(false));
+
+restoreSidebarPreference();
 
 document.addEventListener("pointerdown", resetIdleTimer, { passive: true });
 document.addEventListener("keydown", resetIdleTimer);
@@ -105,6 +115,30 @@ function closeSelectedFlight() {
   state.selectedFlightId = null;
   renderSelectedFlight(null);
   renderMarkers(state.flights);
+  renderFlightsSidebar(state.flights);
+}
+
+function restoreSidebarPreference() {
+  try {
+    setSidebarHidden(window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true", { persist: false });
+  } catch {
+    setSidebarHidden(false, { persist: false });
+  }
+}
+
+function setSidebarHidden(hidden, options = {}) {
+  elements.mapShell.classList.toggle("sidebar-hidden", hidden);
+  elements.showSidebarButton.setAttribute("aria-expanded", String(!hidden));
+
+  if (options.persist !== false) {
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(hidden));
+    } catch {
+      // The preference remains active for this page when storage is unavailable.
+    }
+  }
+
+  window.setTimeout(() => map.invalidateSize(), 180);
 }
 
 async function startTracking() {
@@ -191,6 +225,7 @@ async function refreshFlights() {
 
   renderMarkers(matchingFlights);
   syncSelectedFlight();
+  renderFlightsSidebar(matchingFlights);
   if (!state.selectedFlightId && matchingFlights.length && !state.hasFitBounds) {
     fitToFlights();
     state.hasFitBounds = true;
@@ -385,6 +420,84 @@ function renderMarkers(flights) {
   });
 }
 
+function renderFlightsSidebar(flights) {
+  const previousScrollTop = elements.flightsList.scrollTop;
+  const focusedFlightId = document.activeElement?.closest?.(".flight-list-item")?.dataset.flightId || "";
+  elements.sidebarFlightCount.textContent = String(flights.length);
+  elements.sidebarToggleCount.textContent = String(flights.length);
+  elements.sidebarFlightCount.setAttribute("aria-label", `${flights.length} active ${flights.length === 1 ? "flight" : "flights"}`);
+
+  if (!flights.length) {
+    const empty = document.createElement("div");
+    empty.className = "flights-list-empty";
+
+    const icon = document.createElement("span");
+    icon.className = "material-symbols-rounded";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "flight_off";
+
+    const title = document.createElement("strong");
+    title.textContent = "No CZVG pilots airborne";
+    const copy = document.createElement("span");
+    copy.textContent = "The roster will update automatically.";
+    empty.append(icon, title, copy);
+    elements.flightsList.replaceChildren(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  flights.forEach((flight) => {
+    const details = getFlightDetails(flight);
+    const id = getFlightId(flight);
+    const selected = id === String(state.selectedFlightId);
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "flight-list-item";
+    item.dataset.flightId = id;
+    item.setAttribute("aria-pressed", String(selected));
+    item.setAttribute("aria-label", `View ${details.callsign}, flown by ${details.username}`);
+    if (selected) item.classList.add("is-selected");
+
+    const heading = document.createElement("span");
+    heading.className = "flight-list-heading";
+    const callsign = document.createElement("strong");
+    callsign.textContent = details.callsign;
+    const flightLevel = document.createElement("span");
+    flightLevel.textContent = formatFlightLevel(flight.altitude);
+    heading.append(callsign, flightLevel);
+
+    const pilot = document.createElement("span");
+    pilot.className = "flight-list-pilot";
+    const pilotIcon = document.createElement("span");
+    pilotIcon.className = "material-symbols-rounded";
+    pilotIcon.setAttribute("aria-hidden", "true");
+    pilotIcon.textContent = "person";
+    const pilotName = document.createElement("span");
+    pilotName.textContent = details.username;
+    pilot.append(pilotIcon, pilotName);
+
+    const metrics = document.createElement("span");
+    metrics.className = "flight-list-metrics";
+    const route = document.createElement("span");
+    route.textContent = details.origin === "----" && details.destination === "----"
+      ? flight.matchReason
+      : `${details.origin} → ${details.destination}`;
+    const speed = document.createElement("span");
+    speed.textContent = formatNumber(flight.speed, " kt");
+    metrics.append(route, speed);
+
+    item.append(heading, pilot, metrics);
+    item.addEventListener("click", () => focusFlight(id));
+    fragment.append(item);
+  });
+  elements.flightsList.replaceChildren(fragment);
+  elements.flightsList.scrollTop = previousScrollTop;
+
+  if (focusedFlightId && elements.flightsList.closest(".flights-sidebar")?.offsetParent !== null) {
+    elements.flightsList.querySelector(`[data-flight-id="${CSS.escape(focusedFlightId)}"]`)?.focus({ preventScroll: true });
+  }
+}
+
 function makePlaneIcon(flight, selected = false) {
   const element = makePlaneMarkerElement(flight);
   const heading = normalizeHeading(flight.heading);
@@ -467,8 +580,10 @@ function selectFlight(id, options = {}) {
   if (!flight) return;
 
   state.selectedFlightId = flightId;
+  elements.mapShell.classList.add("has-selected-flight");
   renderSelectedFlight(flight);
   renderMarkers(state.flights);
+  renderFlightsSidebar(state.flights);
   hydrateAircraftForFlight(flight);
 
   if (stored) {
@@ -493,6 +608,7 @@ function syncSelectedFlight() {
 function renderSelectedFlight(flight) {
   if (!flight) {
     elements.selectedPanel.hidden = true;
+    elements.mapShell.classList.remove("has-selected-flight");
     clearSelectedRoute();
     return;
   }
@@ -878,7 +994,10 @@ async function hydrateFlightPlanForFlight(flight) {
 
     if (String(state.selectedFlightId) === flightId) {
       const selected = state.flights.find((item) => getFlightId(item) === flightId);
-      if (selected) renderSelectedFlight(selected);
+      if (selected) {
+        renderSelectedFlight(selected);
+        renderFlightsSidebar(state.flights);
+      }
     }
   } catch (error) {
     state.flightPlansByFlightId.set(flightId, {});

@@ -231,11 +231,271 @@ button:focus-visible,
 
 .map-tools {
   position: absolute;
-  right: 16px;
+  right: 350px;
   bottom: 38px;
   z-index: 1000;
   display: grid;
   gap: 7px;
+}
+
+.map-shell.sidebar-hidden .map-tools {
+  right: 16px;
+}
+
+.show-sidebar-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1050;
+  display: none;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: var(--glass-strong);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 800;
+  backdrop-filter: blur(18px);
+}
+
+.show-sidebar-button:hover {
+  color: var(--blue);
+  border-color: var(--line-strong);
+}
+
+.show-sidebar-button strong {
+  display: grid;
+  place-items: center;
+  min-width: 23px;
+  height: 23px;
+  padding: 0 5px;
+  color: var(--blue);
+  background: rgba(1, 123, 189, 0.1);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.map-shell.sidebar-hidden .show-sidebar-button {
+  display: flex;
+}
+
+.flights-sidebar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 96px;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  width: 318px;
+  overflow: hidden;
+  background: var(--glass-strong);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px) saturate(1.18);
+}
+
+.map-shell.sidebar-hidden .flights-sidebar {
+  display: none;
+}
+
+.flights-sidebar-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.flights-sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.hide-sidebar-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.hide-sidebar-button:hover {
+  color: var(--blue);
+  background: rgba(1, 123, 189, 0.07);
+  border-color: var(--line-strong);
+}
+
+.sidebar-eyebrow {
+  display: block;
+  color: var(--blue);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.flights-sidebar h2 {
+  margin: 3px 0 0;
+  font-size: 1.05rem;
+  letter-spacing: -0.025em;
+}
+
+.sidebar-count {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  color: var(--blue);
+  background: rgba(1, 123, 189, 0.1);
+  border: 1px solid rgba(1, 123, 189, 0.16);
+  border-radius: 9px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.flights-list {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+  scrollbar-color: rgba(100, 116, 139, 0.25) transparent;
+  scrollbar-width: thin;
+}
+
+.flight-list-item {
+  display: grid;
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.flight-list-item + .flight-list-item {
+  margin-top: 4px;
+}
+
+.flight-list-item:hover {
+  background: rgba(237, 243, 246, 0.8);
+  border-color: rgba(23, 32, 51, 0.075);
+  transform: translateX(-2px);
+}
+
+.flight-list-item.is-selected {
+  background: rgba(1, 123, 189, 0.09);
+  border-color: rgba(1, 123, 189, 0.2);
+}
+
+.flight-list-heading,
+.flight-list-pilot,
+.flight-list-metrics {
+  display: flex;
+  align-items: center;
+}
+
+.flight-list-heading {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.flight-list-heading strong {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flight-list-heading > span {
+  flex: 0 0 auto;
+  color: var(--blue);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+}
+
+.flight-list-pilot {
+  gap: 5px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.flight-list-pilot .material-symbols-rounded {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.flight-list-pilot > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flight-list-metrics {
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  padding-top: 9px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+}
+
+.flight-list-metrics span:first-child {
+  overflow: hidden;
+  color: var(--blue);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flights-list-empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 24px 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.flights-list-empty .material-symbols-rounded {
+  margin-bottom: 10px;
+  color: #94a3b8;
+  font-size: 28px;
+}
+
+.flights-list-empty strong {
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.flights-list-empty > span:last-child {
+  margin-top: 5px;
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .map-tools button,
@@ -825,6 +1085,31 @@ button:focus-visible,
     bottom: 38px;
   }
 
+  .flights-sidebar {
+    top: 78px;
+    right: 10px;
+    bottom: auto;
+    width: min(300px, calc(100vw - 20px));
+    max-height: 42vh;
+  }
+
+  .show-sidebar-button {
+    top: 78px;
+    right: 10px;
+  }
+
+  .map-shell.sidebar-hidden .map-tools {
+    right: 10px;
+  }
+
+  .map-shell.has-selected-flight .flights-sidebar {
+    display: none;
+  }
+
+  .map-shell.has-selected-flight .show-sidebar-button {
+    display: none;
+  }
+
   .map-tools button {
     width: 42px;
     height: 42px;
@@ -890,6 +1175,16 @@ button:focus-visible,
 
   .map-status div {
     min-width: 86px;
+  }
+
+  .flights-sidebar {
+    top: 142px;
+    max-height: 38vh;
+  }
+
+
+  .show-sidebar-button {
+    top: 142px;
   }
 
   .route-track {
