@@ -79,15 +79,47 @@ const selectedRoutePane = map.createPane("selectedRoute");
 selectedRoutePane.style.zIndex = "450";
 selectedRoutePane.style.pointerEvents = "none";
 
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  subdomains: "abcd",
-  updateWhenIdle: true,
-  keepBuffer: 3,
-  tileSize: 256,
-  zoomOffset: 0,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-}).addTo(map);
+loadBasemap();
+
+async function loadBasemap() {
+  let cartoKey = "";
+  try {
+    const response = await fetch("/map-config", { signal: AbortSignal.timeout(3000) });
+    if (response.ok) {
+      const config = await response.json();
+      if (typeof config.cartoBasemapApiKey === "string") {
+        cartoKey = config.cartoBasemapApiKey.trim();
+      }
+    }
+  } catch {
+    // The map also works on static hosts or when configuration is unavailable.
+  }
+
+  const options = {
+    maxZoom: 19,
+    updateWhenIdle: true,
+    keepBuffer: 2,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  };
+  const addOpenStreetMap = () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", options).addTo(map);
+
+  if (!cartoKey) {
+    addOpenStreetMap();
+    return;
+  }
+
+  const cartoLayer = L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?key=${encodeURIComponent(cartoKey)}`, {
+    ...options,
+    subdomains: "abcd",
+    attribution: `${options.attribution} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
+  });
+  cartoLayer.once("tileerror", () => {
+    map.removeLayer(cartoLayer);
+    addOpenStreetMap();
+    showToast("CARTO map unavailable. Switched to OpenStreetMap.");
+  });
+  cartoLayer.addTo(map);
+}
 
 requestAnimationFrame(() => {
   map.invalidateSize();

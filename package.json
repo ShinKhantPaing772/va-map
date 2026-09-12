@@ -10,6 +10,6 @@
     "start": "node server.mjs",
     "dev:cloudflare": "npx wrangler pages dev public --compatibility-date=2026-06-30",
     "deploy:cloudflare": "npx wrangler pages deploy public",
-    "check": "node --check server.mjs && node --check public/app.js && node --check 'functions/ifapi/[[path]].js'"
+    "check": "node --check server.mjs && node --check public/app.js && node --check lib/map-config.mjs && node --check functions/map-config.js && node --check 'functions/ifapi/[[path]].js'"
   }
 }

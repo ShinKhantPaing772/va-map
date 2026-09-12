@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getMapConfig } from "./lib/map-config.mjs";
 
 const API_BASE = "https://api.infiniteflight.com/public/v2";
 const root = fileURLToPath(new URL(".", import.meta.url));
@@ -29,6 +30,15 @@ const mimeTypes = {
 createServer(async (request, response) => {
   try {
     const url = new URL(request.url || "/", `http://${request.headers.host}`);
+
+    if (url.pathname === "/map-config") {
+      response.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      response.end(JSON.stringify(getMapConfig(process.env)));
+      return;
+    }
 
     if (url.pathname === "/healthz") {
       response.writeHead(200, {

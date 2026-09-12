@@ -40,6 +40,27 @@ Do not use VS Code Live Server for this app. Live Server may open `http://127.0.
 
 The API key stays on the local server and is never sent to the browser.
 
+## Map Tiles and the CARTO Watermark
+
+The map uses OpenStreetMap's standard tiles by default, with no basemap API key required. This is separate from the Infinite Flight key used to load live traffic.
+
+To use the original CARTO light basemap:
+
+1. [Request a free CARTO Basemaps API key](https://carto.com/basemaps/apikey/). CARTO emails the key immediately; no CARTO account is needed.
+2. Add it to `.env` for Node hosting, or to the Cloudflare Pages environment variables:
+
+   ```sh
+   CARTO_BASEMAP_API_KEY=your_carto_basemap_key
+   ```
+
+3. Restart the local server or redeploy Cloudflare Pages, then refresh the page. If old watermarked tiles remain cached, force-refresh the browser.
+
+This is a **browser-visible basemap key**, returned by `/map-config` and sent directly to CARTO with tile requests. Restrict it to your site's domains in CARTO's key settings (include localhost for local development). The Infinite Flight key remains server-side. Do not put an Infinite Flight key or a private CARTO platform token in this setting.
+
+Leaving the CARTO setting empty selects OpenStreetMap. If map configuration cannot load, the map also defaults to OpenStreetMap. CARTO tile request errors switch the map to OpenStreetMap; an invalid key may instead return watermarked images with a successful HTTP response, so replace or remove the key if the watermark returns.
+
+Keep the visible map attribution. The default tiles follow the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/): normal interactive viewing only, with browser caching and referrers enabled; no bulk downloads or offline prefetching. CARTO's key requirements and current allowance are described on its key request page.
+
 ## Deploy
 
 Cloudflare Pages is the recommended host for this app. Static files are served from `public/`, and `/ifapi/*` is handled by a Cloudflare Pages Function so the Infinite Flight API key stays server-side.
