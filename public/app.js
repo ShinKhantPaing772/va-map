@@ -106,6 +106,8 @@ const I18N = {
     noFlightPlanFiled: "No flight plan filed.",
     routeUnavailable: "No coordinates",
     loading: "Loading…",
+    routePending: "Route loading…",
+    onGround: "On ground",
     offRoute: "off route",
     flightPlanEstimate: "Flight-plan estimate",
     zoomIn: "Zoom in",
@@ -146,6 +148,8 @@ const I18N = {
     noFlightPlanFiled: "未提交飞行计划",
     routeUnavailable: "无坐标",
     loading: "加载中…",
+    routePending: "航路加载中…",
+    onGround: "地面",
     offRoute: "偏离航路",
     flightPlanEstimate: "计划航路预估",
     zoomIn: "放大",
@@ -455,6 +459,7 @@ async function loadFlights() {
 
     renderMarkers(matched);
     renderFlightsSidebar(matched);
+    void hydrateFlightPlansForFlights(matched);
 
     if (state.selectedFlightId) {
       const selected = matched.find((item) => getFlightId(item) === String(state.selectedFlightId));
@@ -715,8 +720,8 @@ function renderFlightsSidebar(flights) {
           <span class="row-aircraft">${escapeHtml(formatAircraftBadge(details.aircraft))}</span>
         </div>
         <div class="row-route">
-          <span>${escapeHtml(details.origin)} → ${escapeHtml(details.destination)}</span>
-          <span class="row-telemetry">${formatFlightLevel(flight.altitude)} · ${formatNumber(flight.speed, " kt")}</span>
+          <span>${escapeHtml(formatRoutePair(details.origin, details.destination))}</span>
+          <span class="row-telemetry">${escapeHtml(formatSidebarTelemetry(flight))}</span>
         </div>
         <div class="row-pilot">
           <span>${escapeHtml(details.username)}</span>
@@ -803,6 +808,25 @@ function formatFlightLevel(value) {
   const altitude = Number(value);
   if (!Number.isFinite(altitude)) return "FL---";
   return `FL${String(Math.max(0, Math.round(altitude / 100))).padStart(3, "0")}`;
+}
+
+function formatRoutePair(origin, destination) {
+  const from = origin && origin !== "----" ? origin : "—";
+  const to = destination && destination !== "----" ? destination : "—";
+  if (from === "—" && to === "—") return t("routePending");
+  return `${from} → ${to}`;
+}
+
+function formatSidebarTelemetry(flight) {
+  const altitude = Number(flight.altitude);
+  const speed = Number(flight.speed);
+  const onGround =
+    Number.isFinite(speed) &&
+    speed < 40 &&
+    Number.isFinite(altitude) &&
+    altitude < 1500;
+  if (onGround) return t("onGround");
+  return `${formatFlightLevel(altitude)} · ${formatNumber(speed, " kt")}`;
 }
 
 function updateMarkerElement(element, reason) {
@@ -1293,6 +1317,31 @@ function getFlightId(flight) {
   return String(flight.flightId || flight.id || flight.callsign || "");
 }
 
+async function hydrateFlightPlansForFlights(flights) {
+  const pending = (flights || []).filter((flight) => {
+    const flightId = getFlightId(flight);
+    return (
+      flightId &&
+      !state.flightPlansByFlightId.has(flightId) &&
+      !state.requestedFlightPlans.has(flightId)
+    );
+  });
+  if (!pending.length) return;
+
+  const concurrency = Math.min(4, pending.length);
+  let cursor = 0;
+
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (cursor < pending.length) {
+        const flight = pending[cursor];
+        cursor += 1;
+        await hydrateFlightPlanForFlight(flight);
+      }
+    }),
+  );
+}
+
 async function hydrateFlightPlanForFlight(flight) {
   const flightId = getFlightId(flight);
   if (!flightId || !state.expertSessionId || state.flightPlansByFlightId.has(flightId) || state.requestedFlightPlans.has(flightId)) {
@@ -1305,24 +1354,33 @@ async function hydrateFlightPlanForFlight(flight) {
     const payload = await request(`/sessions/${state.expertSessionId}/flights/${flightId}/flightplan`);
     const flightPlan = payload.result && typeof payload.result === "object" ? payload.result : {};
     state.flightPlansByFlightId.set(flightId, flightPlan);
-
-    if (String(state.selectedFlightId) === flightId) {
-      const selected = state.flights.find((item) => getFlightId(item) === flightId);
-      if (selected) {
-        renderSelectedFlight(selected);
-        renderFlightsSidebar(state.flights);
-      }
-    }
   } catch (error) {
     state.flightPlansByFlightId.set(flightId, {});
+  }
+
+  // Refresh list OD/ETA as soon as each plan arrives (live Expert Server data).
+  renderFlightsSidebar(state.flights);
+  if (String(state.selectedFlightId) === flightId) {
+    const selected = state.flights.find((item) => getFlightId(item) === flightId);
+    if (selected) renderSelectedFlight(selected);
   }
 }
 
 function getRouteEndpoint(flightPlan, position) {
-  const waypoints = normalizeRouteValues(flightPlan.waypoints);
-  if (!waypoints.length) return "----";
-  const item = position === "first" ? waypoints[0] : waypoints[waypoints.length - 1];
-  return extractAirportCandidate(item);
+  const fromWaypoints = normalizeRouteValues(flightPlan.waypoints);
+  if (fromWaypoints.length) {
+    const item = position === "first" ? fromWaypoints[0] : fromWaypoints[fromWaypoints.length - 1];
+    const candidate = extractAirportCandidate(item);
+    if (candidate && candidate !== "----") return candidate;
+  }
+
+  const fromItems = normalizeRouteValues(flightPlan.flightPlanItems);
+  if (fromItems.length) {
+    const item = position === "first" ? fromItems[0] : fromItems[fromItems.length - 1];
+    return extractAirportCandidate(item);
+  }
+
+  return "----";
 }
 
 function getFlightPlanItemRoute(flightPlan) {
