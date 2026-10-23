@@ -43,14 +43,145 @@ const elements = {
   remainingTimeValue: document.querySelector("#remainingTimeValue"),
   etaValue: document.querySelector("#etaValue"),
   flightPlanValue: document.querySelector("#flightPlanValue"),
+  flightPlanWaypoints: document.querySelector("#flightPlanWaypoints"),
   aircraftValue: document.querySelector("#aircraftValue"),
   liveryValue: document.querySelector("#liveryValue"),
+  pilotSearchInput: document.querySelector("#pilotSearchInput"),
+  searchClearButton: document.querySelector("#searchClearButton"),
+  demoToggleButton: document.querySelector("#demoToggleButton"),
+  emptyDemoButton: document.querySelector("#emptyDemoButton"),
+  airborneLabel: document.querySelector("#airborneLabel"),
+  demoBtnLabel: document.querySelector("#demoBtnLabel"),
+  pilotsBtnLabel: document.querySelector("#pilotsBtnLabel"),
+  langToggleButton: document.querySelector("#langToggleButton"),
+  langBtnLabel: document.querySelector("#langBtnLabel"),
+  flightsSidebarTitle: document.querySelector("#flightsSidebarTitle"),
   toast: document.querySelector("#toast"),
 };
 
+const LOCALE_STORAGE_KEY = "czvg:locale";
+
+function detectInitialLocale() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get("lang") || params.get("locale");
+    if (fromQuery === "zh" || fromQuery === "en") return fromQuery;
+  } catch {
+    // Ignore URL parsing errors
+  }
+  try {
+    const saved = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (saved === "zh" || saved === "en") return saved;
+  } catch {
+    // Ignore storage errors
+  }
+  const browserLang = (navigator.language || "").toLowerCase();
+  return browserLang.startsWith("zh") ? "zh" : "en";
+}
+
+const I18N = {
+  en: {
+    airborne: "Airborne",
+    demoData: "Demo Data",
+    pilots: "Pilots",
+    fleetTitle: "CZVG Fleet",
+    filterPlaceholder: "Filter fleet...",
+    noMatchingTitle: "No matching flights",
+    noMatchingSub: (q) => `No flights matching "${q}"`,
+    noAirborneTitle: "No CZVG pilots airborne",
+    noAirborneSub: "The live roster will update automatically.",
+    loadSimFlights: "Load Simulated Flights",
+    origin: "Origin",
+    destination: "Destination",
+    altitude: "Altitude",
+    speed: "Speed",
+    heading: "Heading",
+    eta: "ETA",
+    route: "Route",
+    leftSuffix: "left",
+    statusLive: "Live",
+    statusDemo: "Demo",
+    statusScanning: "Scanning",
+    statusConnecting: "Connecting",
+    statusReconnecting: "Reconnecting",
+    statusPaused: "Paused",
+    statusOffline: "Offline",
+    statusSimReady: "Sim Ready",
+    toastSimActive: "Simulated CZVG Fleet activated.",
+    toastLiveResumed: "Resumed live Expert Server tracking.",
+    radarStandby: "Radar Standby",
+    pausedTitle: "Live updates paused",
+    pausedDesc: "Flight radar polling was paused after 5 minutes of inactivity.",
+    resumeLiveRadar: "Resume Live Radar",
+    scanningTitle: "Scanning Expert Server",
+    scanningSub: "Active CZVG flights will appear here.",
+    directVectors: "Direct / Vectors",
+    noFlightPlanFiled: "No flight plan filed.",
+    routeUnavailable: "Route unavailable",
+    loading: "Loading…",
+    offRoute: "off route",
+    flightPlanEstimate: "Flight-plan estimate",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    fitFlights: "Fit flights",
+    close: "Close",
+  },
+  zh: {
+    airborne: "在飞",
+    demoData: "演示数据",
+    pilots: "机组",
+    fleetTitle: "南航机队",
+    filterPlaceholder: "搜索航班或飞行员...",
+    noMatchingTitle: "无匹配航班",
+    noMatchingSub: (q) => `未找到匹配 "${q}" 的航班`,
+    noAirborneTitle: "暂无在飞航班",
+    noAirborneSub: "实时机队将自动刷新。",
+    loadSimFlights: "加载演示航班",
+    origin: "始发",
+    destination: "目的",
+    altitude: "高度",
+    speed: "地速",
+    heading: "航向",
+    eta: "预计到达",
+    route: "航路",
+    leftSuffix: "剩余",
+    statusLive: "实时",
+    statusDemo: "演示",
+    statusScanning: "扫描中",
+    statusConnecting: "连接中",
+    statusReconnecting: "重连中",
+    statusPaused: "已暂停",
+    statusOffline: "离线",
+    statusSimReady: "演示就绪",
+    toastSimActive: "已启用模拟机队。",
+    toastLiveResumed: "已恢复实时雷达追踪。",
+    radarStandby: "雷达待机",
+    pausedTitle: "实时追踪已暂停",
+    pausedDesc: "由于 5 分钟未操作，航班雷达已自动进入待机状态。",
+    resumeLiveRadar: "恢复实时雷达",
+    scanningTitle: "正在扫描服务器",
+    scanningSub: "在飞航班将在此显示。",
+    directVectors: "直飞 / 雷达引导",
+    noFlightPlanFiled: "未提交飞行计划",
+    routeUnavailable: "暂无航路",
+    loading: "加载中…",
+    offRoute: "偏离航路",
+    flightPlanEstimate: "计划航路预估",
+    zoomIn: "放大",
+    zoomOut: "缩小",
+    fitFlights: "聚焦所有在飞航班",
+    close: "关闭",
+  },
+};
+
 const state = {
+  locale: detectInitialLocale(),
+  connectionStatusKey: "connecting",
+  connectionLabelKey: "statusConnecting",
   running: false,
   paused: false,
+  demoMode: false,
+  filterQuery: "",
   expertSessionId: null,
   sessionLastLoaded: 0,
   selectedFlightId: null,
@@ -68,6 +199,108 @@ const state = {
   refreshTimer: null,
   idleTimer: null,
 };
+
+const DEMO_FLIGHTS = [
+  {
+    flightId: "demo-csn327",
+    callsign: "CSN327VG",
+    username: "Capt_Li",
+    virtualOrganization: "China Southern Virtual",
+    matchReason: "China Southern VG",
+    latitude: 31.85,
+    longitude: 125.40,
+    altitude: 39000,
+    speed: 492,
+    heading: 68,
+    verticalSpeed: 0,
+    originAirport: "ZGGG",
+    destinationAirport: "RJAA",
+    aircraftName: "Airbus A350-900",
+    liveryName: "China Southern Airlines",
+    route: "ZGGG LIG WHA P23 KANSU RJAA",
+    flightPlanCoordinates: [
+      { latitude: 23.39, longitude: 113.30 },
+      { latitude: 26.50, longitude: 116.80 },
+      { latitude: 31.85, longitude: 125.40 },
+      { latitude: 33.20, longitude: 133.10 },
+      { latitude: 35.76, longitude: 140.38 },
+    ],
+  },
+  {
+    flightId: "demo-csn301",
+    callsign: "CSN301VG",
+    username: "FirstOfficer_Chen",
+    virtualOrganization: "[CZVG] Senior Pilot",
+    matchReason: "China Southern VG",
+    latitude: 1.35,
+    longitude: 119.80,
+    altitude: 35000,
+    speed: 476,
+    heading: 158,
+    verticalSpeed: 0,
+    originAirport: "ZGGG",
+    destinationAirport: "YSSY",
+    aircraftName: "Boeing 777-300ER",
+    liveryName: "China Southern Airlines",
+    route: "ZGGG SIKOU BUNTA YSSY",
+    flightPlanCoordinates: [
+      { latitude: 23.39, longitude: 113.30 },
+      { latitude: 12.00, longitude: 116.00 },
+      { latitude: 1.35, longitude: 119.80 },
+      { latitude: -15.00, longitude: 128.00 },
+      { latitude: -33.94, longitude: 151.17 },
+    ],
+  },
+  {
+    flightId: "demo-csn399",
+    callsign: "CSN399VG",
+    username: "Pilot_Wang",
+    virtualOrganization: "CZVG Operations",
+    matchReason: "China Southern VG",
+    latitude: 53.20,
+    longitude: 48.60,
+    altitude: 38000,
+    speed: 465,
+    heading: 295,
+    verticalSpeed: 0,
+    originAirport: "ZGSZ",
+    destinationAirport: "EDDF",
+    aircraftName: "Boeing 787-9 Dreamliner",
+    liveryName: "China Southern Airlines",
+    route: "ZGSZ POLHO MORIT KUBER EDDF",
+    flightPlanCoordinates: [
+      { latitude: 22.63, longitude: 113.81 },
+      { latitude: 38.00, longitude: 85.00 },
+      { latitude: 53.20, longitude: 48.60 },
+      { latitude: 52.00, longitude: 20.00 },
+      { latitude: 50.03, longitude: 8.57 },
+    ],
+  },
+  {
+    flightId: "demo-csn673",
+    callsign: "CSN673VG",
+    username: "SkyWalker",
+    virtualOrganization: "[CZVG]",
+    matchReason: "China Southern VG",
+    latitude: 14.20,
+    longitude: 106.50,
+    altitude: 37000,
+    speed: 458,
+    heading: 195,
+    verticalSpeed: 0,
+    originAirport: "ZBAD",
+    destinationAirport: "WSSS",
+    aircraftName: "Airbus A330-300",
+    liveryName: "China Southern Airlines",
+    route: "ZBAD WHA GURBO WSSS",
+    flightPlanCoordinates: [
+      { latitude: 39.50, longitude: 116.41 },
+      { latitude: 28.00, longitude: 112.00 },
+      { latitude: 14.20, longitude: 106.50 },
+      { latitude: 1.36, longitude: 103.99 },
+    ],
+  },
+];
 
 const map = L.map("map", {
   worldCopyJump: true,
@@ -87,38 +320,28 @@ async function loadBasemap() {
     const response = await fetch("/map-config", { signal: AbortSignal.timeout(3000) });
     if (response.ok) {
       const config = await response.json();
-      if (typeof config.cartoBasemapApiKey === "string") {
+      if (typeof config.cartoBasemapApiKey === "string" && config.cartoBasemapApiKey.trim()) {
         cartoKey = config.cartoBasemapApiKey.trim();
       }
     }
   } catch {
-    // The map also works on static hosts or when configuration is unavailable.
+    // OpenStreetMap fallback will be used
   }
 
   const options = {
     maxZoom: 19,
     updateWhenIdle: true,
-    keepBuffer: 2,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    keepBuffer: 4,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
   };
-  const addOpenStreetMap = () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", options).addTo(map);
 
-  if (!cartoKey) {
-    addOpenStreetMap();
-    return;
-  }
+  // Use direct basemaps.cartocdn.com URL without sharding subdomains or retina suffixes
+  const tileUrl = cartoKey
+    ? `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(cartoKey)}`
+    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-  const cartoLayer = L.tileLayer(`https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?key=${encodeURIComponent(cartoKey)}`, {
-    ...options,
-    subdomains: "abcd",
-    attribution: `${options.attribution} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
-  });
-  cartoLayer.once("tileerror", () => {
-    map.removeLayer(cartoLayer);
-    addOpenStreetMap();
-    showToast("CARTO map unavailable. Switched to OpenStreetMap.");
-  });
-  cartoLayer.addTo(map);
+  const layer = L.tileLayer(tileUrl, options);
+  layer.addTo(map);
 }
 
 requestAnimationFrame(() => {
@@ -130,18 +353,192 @@ window.addEventListener("load", () => map.invalidateSize());
 window.addEventListener("resize", () => map.invalidateSize());
 window.addEventListener("load", () => startTracking());
 
-elements.closePanelButton.addEventListener("click", closeSelectedFlight);
-elements.resumeTrackingButton.addEventListener("click", resumeTracking);
-elements.zoomInButton.addEventListener("click", () => map.zoomIn());
-elements.zoomOutButton.addEventListener("click", () => map.zoomOut());
-elements.resetMapButton.addEventListener("click", fitToFlights);
-elements.hideSidebarButton.addEventListener("click", () => setSidebarHidden(true));
-elements.showSidebarButton.addEventListener("click", () => setSidebarHidden(false));
+if (elements.closePanelButton) elements.closePanelButton.addEventListener("click", closeSelectedFlight);
+if (elements.resumeTrackingButton) elements.resumeTrackingButton.addEventListener("click", resumeTracking);
+if (elements.zoomInButton) elements.zoomInButton.addEventListener("click", () => map.zoomIn());
+if (elements.zoomOutButton) elements.zoomOutButton.addEventListener("click", () => map.zoomOut());
+if (elements.resetMapButton) elements.resetMapButton.addEventListener("click", fitToFlights);
+if (elements.hideSidebarButton) elements.hideSidebarButton.addEventListener("click", () => setSidebarHidden(true));
+if (elements.showSidebarButton) elements.showSidebarButton.addEventListener("click", () => setSidebarHidden(false));
+
+if (elements.demoToggleButton) {
+  elements.demoToggleButton.addEventListener("click", toggleDemoFleet);
+}
+
+if (elements.langToggleButton) {
+  elements.langToggleButton.addEventListener("click", () => {
+    setLocale(state.locale === "zh" ? "en" : "zh");
+  });
+}
+
+window.addEventListener("storage", (e) => {
+  if (e.key === LOCALE_STORAGE_KEY && (e.newValue === "zh" || e.newValue === "en")) {
+    setLocale(e.newValue, false);
+  }
+});
+
+window.addEventListener("message", (event) => {
+  if (event.data && typeof event.data === "object") {
+    if (event.data.type === "czvg:locale" && (event.data.locale === "zh" || event.data.locale === "en")) {
+      setLocale(event.data.locale, false);
+    }
+  }
+});
+
+function t(key) {
+  return I18N[state.locale]?.[key] || I18N.en[key] || key;
+}
+
+function setLocale(nextLocale, persist = true) {
+  state.locale = nextLocale === "zh" ? "zh" : "en";
+  if (persist) {
+    try {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, state.locale);
+    } catch {
+      // Ignore storage errors
+    }
+  }
+  applyLocaleStrings();
+  renderFlightsSidebar(state.flights);
+  if (state.selectedFlightId) {
+    const selected = state.flights.find((item) => getFlightId(item) === String(state.selectedFlightId));
+    if (selected) renderSelectedFlight(selected);
+  }
+}
+
+function applyLocaleStrings() {
+  document.documentElement.lang = state.locale === "zh" ? "zh-CN" : "en";
+  if (elements.airborneLabel) elements.airborneLabel.textContent = t("airborne");
+  if (elements.demoBtnLabel) elements.demoBtnLabel.textContent = t("demoData");
+  if (elements.pilotsBtnLabel) elements.pilotsBtnLabel.textContent = t("pilots");
+  if (elements.langBtnLabel) elements.langBtnLabel.textContent = state.locale === "zh" ? "EN" : "中文";
+  if (elements.flightsSidebarTitle) elements.flightsSidebarTitle.textContent = t("fleetTitle");
+  if (elements.pilotSearchInput) elements.pilotSearchInput.placeholder = t("filterPlaceholder");
+
+  const depLabel = document.querySelector(".departure-node span");
+  const arrLabel = document.querySelector(".arrival-node span");
+  if (depLabel) depLabel.textContent = t("origin");
+  if (arrLabel) arrLabel.textContent = t("destination");
+
+  const hudLabels = document.querySelectorAll(".hud-stat-label");
+  if (hudLabels.length >= 4) {
+    hudLabels[0].textContent = t("altitude");
+    hudLabels[1].textContent = t("speed");
+    hudLabels[2].textContent = t("heading");
+    hudLabels[3].textContent = t("eta");
+  }
+
+  const wpCaption = document.querySelector(".waypoints-caption");
+  if (wpCaption) wpCaption.textContent = t("route");
+
+  // Inactivity overlay
+  const inactTag = document.querySelector(".inactivity-tag");
+  if (inactTag) inactTag.textContent = t("radarStandby");
+  const inactTitle = document.querySelector("#inactivityTitle");
+  if (inactTitle) inactTitle.textContent = t("pausedTitle");
+  const inactDesc = document.querySelector(".inactivity-dialog-card p");
+  if (inactDesc) inactDesc.textContent = t("pausedDesc");
+  if (elements.resumeTrackingButton) {
+    const resumeSpan = elements.resumeTrackingButton.querySelector("span");
+    if (resumeSpan) resumeSpan.textContent = t("resumeLiveRadar");
+  }
+
+  // Initial scanning block in empty list
+  const emptyBlock = document.querySelector(".flights-list-empty");
+  if (emptyBlock) {
+    const strong = emptyBlock.querySelector("strong");
+    if (strong) strong.textContent = t("scanningTitle");
+    const span = emptyBlock.querySelector("span:not(.material-symbols-rounded)");
+    if (span) span.textContent = t("scanningSub");
+    const demoBtnSpan = emptyBlock.querySelector(".empty-action-btn span");
+    if (demoBtnSpan) demoBtnSpan.textContent = t("loadSimFlights");
+  }
+
+  // Toolbars & icons
+  if (elements.zoomInButton) elements.zoomInButton.title = t("zoomIn");
+  if (elements.zoomOutButton) elements.zoomOutButton.title = t("zoomOut");
+  if (elements.resetMapButton) elements.resetMapButton.title = t("fitFlights");
+  if (elements.hideSidebarButton) elements.hideSidebarButton.title = t("close");
+
+  if (state.connectionLabelKey && elements.connectionLabel) {
+    elements.connectionLabel.textContent = t(state.connectionLabelKey);
+  }
+}
+
+if (elements.emptyDemoButton) {
+  elements.emptyDemoButton.addEventListener("click", () => {
+    if (!state.demoMode) toggleDemoFleet();
+  });
+}
+
+if (elements.pilotSearchInput) {
+  elements.pilotSearchInput.addEventListener("input", (e) => {
+    state.filterQuery = e.target.value;
+    if (elements.searchClearButton) {
+      elements.searchClearButton.hidden = !state.filterQuery;
+    }
+    renderFlightsSidebar(state.flights);
+  });
+}
+
+if (elements.searchClearButton) {
+  elements.searchClearButton.addEventListener("click", () => {
+    state.filterQuery = "";
+    if (elements.pilotSearchInput) elements.pilotSearchInput.value = "";
+    elements.searchClearButton.hidden = true;
+    renderFlightsSidebar(state.flights);
+  });
+}
 
 restoreSidebarPreference();
+applyLocaleStrings();
 
 document.addEventListener("pointerdown", resetIdleTimer, { passive: true });
 document.addEventListener("keydown", resetIdleTimer);
+
+function toggleDemoFleet() {
+  state.demoMode = !state.demoMode;
+  if (state.demoMode) {
+    elements.demoToggleButton?.classList.add("is-active");
+    loadDemoData();
+    showToast(t("toastSimActive"));
+  } else {
+    elements.demoToggleButton?.classList.remove("is-active");
+    state.flightPlansByFlightId.clear();
+    state.flights = [];
+    renderMarkers([]);
+    renderFlightsSidebar([]);
+    renderSelectedFlight(null);
+    setConnectionState("connecting", "statusReconnecting");
+    loadFlights();
+    showToast(t("toastLiveResumed"));
+  }
+}
+
+function loadDemoData() {
+  state.flights = DEMO_FLIGHTS.map((f) => ({ ...f }));
+  DEMO_FLIGHTS.forEach((f) => {
+    state.flightPlansByFlightId.set(f.flightId, {
+      originAirport: f.originAirport,
+      destinationAirport: f.destinationAirport,
+      route: f.route,
+      waypoints: f.flightPlanCoordinates,
+    });
+  });
+
+  setConnectionState("live", "statusDemo");
+  if (elements.matchCount) elements.matchCount.textContent = String(state.flights.length);
+  if (elements.totalCount) elements.totalCount.textContent = "1,248";
+  if (elements.updatedAt) elements.updatedAt.textContent = formatUpdatedAt(new Date());
+  elements.mapShell.classList.remove("is-loading");
+
+  renderMarkers(state.flights);
+  renderFlightsSidebar(state.flights);
+  if (!state.hasFitBounds) {
+    fitToFlights();
+    state.hasFitBounds = true;
+  }
+}
 
 function closeSelectedFlight() {
   state.selectedFlightId = null;
@@ -151,142 +548,150 @@ function closeSelectedFlight() {
 }
 
 function restoreSidebarPreference() {
-  try {
-    setSidebarHidden(window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true", { persist: false });
-  } catch {
-    setSidebarHidden(false, { persist: false });
-  }
+  const isHidden = window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+  setSidebarHidden(isHidden, false);
 }
 
-function setSidebarHidden(hidden, options = {}) {
+function setSidebarHidden(hidden, persist = true) {
   elements.mapShell.classList.toggle("sidebar-hidden", hidden);
   elements.showSidebarButton.setAttribute("aria-expanded", String(!hidden));
-
-  if (options.persist !== false) {
+  if (persist) {
     try {
       window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(hidden));
     } catch {
-      // The preference remains active for this page when storage is unavailable.
+      // Storage unavailable
     }
   }
-
-  window.setTimeout(() => map.invalidateSize(), 180);
+  requestAnimationFrame(() => map.invalidateSize());
 }
 
-async function startTracking() {
-  state.running = true;
-  state.paused = false;
-  state.sessionLastLoaded = 0;
-  state.hasFitBounds = false;
-  setInactivityOverlay(false);
-  setConnectionState("Connecting", "connecting", true);
-
-  resetIdleTimer();
-
-  try {
-    await loadReferenceData();
-    await refreshFlights();
-  } catch (error) {
-    stopTracking(error.message || "Unable to connect to Infinite Flight.");
-  }
-}
-
-function stopTracking(message) {
-  state.running = false;
-  state.paused = false;
-  state.selectedFlightId = null;
-  window.clearTimeout(state.refreshTimer);
+function resetIdleTimer() {
   window.clearTimeout(state.idleTimer);
-  setInactivityOverlay(false);
-  setConnectionState("Offline", "offline", false);
-  renderSelectedFlight(null);
-  if (message) showToast(message);
+  if (state.paused) return;
+  state.idleTimer = window.setTimeout(pauseTracking, IDLE_STOP_MS);
 }
 
-function pauseTrackingForInactivity() {
-  if (!state.running || state.paused) return;
+function pauseTracking() {
   state.paused = true;
   window.clearTimeout(state.refreshTimer);
-  window.clearTimeout(state.idleTimer);
-  setConnectionState("Paused", "paused", false);
-  setInactivityOverlay(true);
+  setConnectionState("paused", "statusPaused");
+  elements.inactivityOverlay.hidden = false;
+  elements.mapShell.setAttribute("aria-busy", "false");
 }
 
 function resumeTracking() {
-  if (!state.running || !state.paused) return;
+  elements.inactivityOverlay.hidden = true;
   state.paused = false;
-  setConnectionState("Connecting", "connecting", true);
-  setInactivityOverlay(false);
   resetIdleTimer();
-  refreshFlights().catch((error) => {
-    stopTracking(error.message || "Unable to resume live updates.");
-  });
+  setConnectionState("connecting", "statusConnecting");
+  refreshLoop();
 }
 
-function setInactivityOverlay(visible) {
-  elements.inactivityOverlay.hidden = !visible;
-  if (visible) {
-    window.setTimeout(() => elements.resumeTrackingButton.focus(), 0);
+function setConnectionState(status, labelKeyOrText) {
+  state.connectionStatusKey = status;
+  state.connectionLabelKey = labelKeyOrText;
+  elements.connectionStatus.dataset.state = status;
+  elements.connectionLabel.textContent = t(labelKeyOrText);
+}
+
+async function startTracking() {
+  if (state.running) return;
+  state.running = true;
+  resetIdleTimer();
+  await refreshLoop();
+}
+
+async function refreshLoop() {
+  if (state.paused) return;
+  if (!state.demoMode) {
+    await loadFlights();
+  }
+  window.clearTimeout(state.refreshTimer);
+  if (!state.paused) {
+    state.refreshTimer = window.setTimeout(refreshLoop, FLIGHT_REFRESH_MS);
   }
 }
 
-async function refreshFlights() {
-  if (!state.running || state.paused) return;
+async function loadFlights() {
+  try {
+    setConnectionState("connecting", "statusScanning");
+    await ensureExpertSession();
+    await loadReferenceData();
 
-  const now = Date.now();
-  if (!state.expertSessionId || now - state.sessionLastLoaded > SESSION_REFRESH_MS) {
-    await loadExpertSession();
-    if (!state.running || state.paused) return;
+    const result = await request(`/sessions/${state.expertSessionId}/flights`, { includeMeta: true });
+    const flights = normalizeResultArray(result.payload);
+    const matched = [];
+
+    flights.forEach((flight) => {
+      const matchReason = getMatchReason(flight);
+      if (matchReason) {
+        matched.push({ ...flight, matchReason });
+      }
+    });
+
+    matched.sort(sortFlights);
+    state.flights = matched;
+
+    if (elements.matchCount) elements.matchCount.textContent = String(matched.length);
+    if (elements.totalCount) elements.totalCount.textContent = String(flights.length);
+    if (elements.updatedAt) elements.updatedAt.textContent = formatUpdatedAt(result.fetchedAt);
+    setConnectionState("live", "statusLive");
+    elements.mapShell.classList.remove("is-loading");
+    elements.mapShell.setAttribute("aria-busy", "false");
+
+    renderMarkers(matched);
+    renderFlightsSidebar(matched);
+
+    if (state.selectedFlightId) {
+      const selected = matched.find((item) => getFlightId(item) === String(state.selectedFlightId));
+      if (selected) {
+        renderSelectedFlight(selected);
+      } else {
+        closeSelectedFlight();
+      }
+    }
+
+    if (!state.hasFitBounds && matched.length) {
+      fitToFlights();
+      state.hasFitBounds = true;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to reach Infinite Flight API.";
+    if (message.includes("INFINITE_FLIGHT_API_KEY") || message.includes("503")) {
+      setConnectionState("offline", "statusSimReady");
+      if (!state.demoMode && state.flights.length === 0) {
+        loadDemoData();
+        state.demoMode = true;
+        elements.demoToggleButton?.classList.add("is-active");
+        showToast(t("toastSimActive"));
+        return;
+      }
+    } else {
+      setConnectionState("offline", "statusOffline");
+    }
+    elements.mapShell.classList.remove("is-loading");
+    elements.mapShell.setAttribute("aria-busy", "false");
+    showToast(message);
   }
-
-  const { payload, fetchedAt, cacheStatus } = await request(`/sessions/${state.expertSessionId}/flights`, { includeMeta: true });
-  if (!state.running || state.paused) return;
-
-  const flights = Array.isArray(payload.result) ? payload.result : [];
-  const matchingFlights = flights
-    .map((flight) => ({ ...flight, matchReason: getMatchReason(flight) }))
-    .filter((flight) => flight.matchReason)
-    .sort(sortFlights);
-
-  state.flights = matchingFlights;
-  elements.totalCount.textContent = String(flights.length);
-  elements.matchCount.textContent = String(matchingFlights.length);
-  elements.updatedAt.textContent = formatUpdatedAt(fetchedAt);
-  elements.updatedAt.title = cacheStatus ? `Proxy cache: ${cacheStatus}` : "";
-  setConnectionState("Live", "live", false);
-
-  renderMarkers(matchingFlights);
-  syncSelectedFlight();
-  renderFlightsSidebar(matchingFlights);
-  if (!state.selectedFlightId && matchingFlights.length && !state.hasFitBounds) {
-    fitToFlights();
-    state.hasFitBounds = true;
-  }
-  scheduleFlightRefresh(FLIGHT_REFRESH_MS);
 }
 
-function setConnectionState(label, stateName, busy) {
-  elements.connectionLabel.textContent = label;
-  elements.connectionStatus.dataset.state = stateName;
-  elements.mapShell.setAttribute("aria-busy", String(busy));
-  document.body.classList.toggle("is-loading", busy);
-}
+async function ensureExpertSession() {
+  const sessionValid = state.expertSessionId && Date.now() - state.sessionLastLoaded < SESSION_REFRESH_MS;
+  if (sessionValid) return;
 
-async function loadExpertSession() {
   const payload = await request("/sessions");
-  const sessions = Array.isArray(payload.result) ? payload.result : [];
+  const sessions = normalizeResultArray(payload);
   const expert = sessions.find((session) => {
-    const name = String(session.name || "").toLowerCase();
+    const name = String(session.name || session.sessionName || "").toLowerCase();
     return name.includes("expert") || session.id === "expert";
   });
 
   if (!expert) {
-    throw new Error("The Expert Server session was not found in the Live API response.");
+    throw new Error("Expert Server session was not found in Live API response.");
   }
 
   state.expertSessionId = expert.id;
   state.sessionLastLoaded = Date.now();
-  showToast(`Connected to ${expert.name || EXPERT_NAME}.`);
 }
 
 async function request(path, options = {}) {
@@ -294,15 +699,15 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error("Run this app with `node server.mjs`; VS Code Live Server does not provide /ifapi.");
+      throw new Error("API proxy endpoint /ifapi not found. Run server with `node server.mjs`.");
     }
     if (response.status === 503) {
-      throw new Error("Add INFINITE_FLIGHT_API_KEY to .env, then restart the server.");
+      throw new Error("Add INFINITE_FLIGHT_API_KEY to .env, then restart server.");
     }
     if (response.status === 401 || response.status === 403) {
-      throw new Error("Infinite Flight rejected the API key in .env.");
+      throw new Error("Infinite Flight API rejected authorization key.");
     }
-    throw new Error(`Infinite Flight API returned ${response.status}.`);
+    throw new Error(`Infinite Flight API returned status ${response.status}.`);
   }
 
   const payload = await response.json();
@@ -362,20 +767,11 @@ async function loadReferenceData() {
   }
 }
 
-function scheduleFlightRefresh(delay) {
-  window.clearTimeout(state.refreshTimer);
-  state.refreshTimer = window.setTimeout(() => {
-    refreshFlights().catch((error) => {
-      showToast(error.message || "Live update failed.");
-      scheduleFlightRefresh(FLIGHT_REFRESH_MS);
-    });
-  }, delay);
-}
-
-function resetIdleTimer() {
-  if (!state.running || state.paused) return;
-  window.clearTimeout(state.idleTimer);
-  state.idleTimer = window.setTimeout(pauseTrackingForInactivity, IDLE_STOP_MS);
+function normalizeResultArray(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.result)) return payload.result;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
 }
 
 function getMatchReason(flight) {
@@ -413,35 +809,42 @@ function renderMarkers(flights) {
   const activeIds = new Set();
 
   flights.forEach((flight) => {
-    const id = String(flight.flightId || flight.id || flight.callsign);
-    const lat = Number(flight.latitude);
-    const lng = Number(flight.longitude);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
+    const id = getFlightId(flight);
     activeIds.add(id);
-    const stored = state.markers.get(id);
-    const icon = makePlaneIcon(flight, id === String(state.selectedFlightId));
-    const tooltip = makeFlightTooltip(flight);
+    const lat = Number(flight.latitude);
+    const lon = Number(flight.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
-    if (stored) {
-      stored.marker.setLatLng([lat, lng]);
-      stored.marker.setIcon(icon);
-      stored.marker.setTooltipContent(tooltip);
-    } else {
-      const marker = L.marker([lat, lng], {
-        icon,
-        title: `Select ${firstText(flight.callsign, "flight")}`,
-        alt: `Aircraft ${firstText(flight.callsign, "flight")}`,
-      }).addTo(map);
-      marker.on("click", () => selectFlight(id, { pan: false }));
-      marker.bindTooltip(tooltip, {
-        direction: "top",
-        offset: [0, -18],
-        opacity: 1,
-        className: "flight-tooltip",
-      });
-      state.markers.set(id, { marker });
+    const latLng = [lat, lon];
+    const isSelected = String(state.selectedFlightId) === id;
+    const existing = state.markers.get(id);
+
+    if (existing) {
+      existing.marker.setLatLng(latLng);
+      existing.marker.setIcon(makePlaneIcon(flight, isSelected));
+      existing.marker.setTooltipContent(makeFlightTooltip(flight));
+      if (isSelected) existing.marker.setZIndexOffset(1000);
+      else existing.marker.setZIndexOffset(0);
+      return;
     }
+
+    const marker = L.marker(latLng, {
+      icon: makePlaneIcon(flight, isSelected),
+      riseOnHover: true,
+      keyboard: true,
+    });
+
+    marker.bindTooltip(makeFlightTooltip(flight), {
+      className: "flight-tooltip",
+      direction: "top",
+      offset: [0, -18],
+      opacity: 1,
+    });
+
+    marker.on("click", () => focusFlight(id));
+    marker.addTo(map);
+
+    state.markers.set(id, { marker, flightId: id });
   });
 
   state.markers.forEach((stored, id) => {
@@ -454,80 +857,102 @@ function renderMarkers(flights) {
 
 function renderFlightsSidebar(flights) {
   const previousScrollTop = elements.flightsList.scrollTop;
-  const focusedFlightId = document.activeElement?.closest?.(".flight-list-item")?.dataset.flightId || "";
-  elements.sidebarFlightCount.textContent = String(flights.length);
-  elements.sidebarToggleCount.textContent = String(flights.length);
-  elements.sidebarFlightCount.setAttribute("aria-label", `${flights.length} active ${flights.length === 1 ? "flight" : "flights"}`);
+  if (elements.sidebarFlightCount) elements.sidebarFlightCount.textContent = String(flights.length);
+  if (elements.sidebarToggleCount) elements.sidebarToggleCount.textContent = String(flights.length);
 
-  if (!flights.length) {
+  const query = (state.filterQuery || "").trim().toLowerCase();
+  const filtered = query
+    ? flights.filter((f) => {
+        const details = getFlightDetails(f);
+        return (
+          details.callsign.toLowerCase().includes(query) ||
+          details.username.toLowerCase().includes(query) ||
+          details.origin.toLowerCase().includes(query) ||
+          details.destination.toLowerCase().includes(query) ||
+          details.aircraft.toLowerCase().includes(query)
+        );
+      })
+    : flights;
+
+  if (!filtered.length) {
     const empty = document.createElement("div");
     empty.className = "flights-list-empty";
+    const subText = query
+      ? I18N[state.locale].noMatchingSub(escapeHtml(query))
+      : escapeHtml(t("noAirborneSub"));
+    empty.innerHTML = `
+      <span class="material-symbols-rounded empty-radar-icon">search_off</span>
+      <strong>${escapeHtml(query ? t("noMatchingTitle") : t("noAirborneTitle"))}</strong>
+      <span>${subText}</span>
+    `;
 
-    const icon = document.createElement("span");
-    icon.className = "material-symbols-rounded";
-    icon.setAttribute("aria-hidden", "true");
-    icon.textContent = "flight_off";
+    if (!query && !state.demoMode) {
+      const demoBtn = document.createElement("button");
+      demoBtn.type = "button";
+      demoBtn.className = "empty-action-btn";
+      demoBtn.innerHTML = `<span>${escapeHtml(t("loadSimFlights"))}</span>`;
+      demoBtn.addEventListener("click", toggleDemoFleet);
+      empty.appendChild(demoBtn);
+    }
 
-    const title = document.createElement("strong");
-    title.textContent = "No CZVG pilots airborne";
-    const copy = document.createElement("span");
-    copy.textContent = "The roster will update automatically.";
-    empty.append(icon, title, copy);
     elements.flightsList.replaceChildren(empty);
     return;
   }
 
   const fragment = document.createDocumentFragment();
-  flights.forEach((flight) => {
+  filtered.forEach((flight) => {
     const details = getFlightDetails(flight);
     const id = getFlightId(flight);
     const selected = id === String(state.selectedFlightId);
+
     const item = document.createElement("button");
     item.type = "button";
-    item.className = "flight-list-item";
+    item.className = "flight-list-row";
     item.dataset.flightId = id;
     item.setAttribute("aria-pressed", String(selected));
     item.setAttribute("aria-label", `View ${details.callsign}, flown by ${details.username}`);
     if (selected) item.classList.add("is-selected");
 
-    const heading = document.createElement("span");
-    heading.className = "flight-list-heading";
-    const callsign = document.createElement("strong");
-    callsign.textContent = details.callsign;
-    const flightLevel = document.createElement("span");
-    flightLevel.textContent = formatFlightLevel(flight.altitude);
-    heading.append(callsign, flightLevel);
+    item.innerHTML = `
+      <div class="row-main">
+        <div class="row-header">
+          <strong class="row-callsign">${escapeHtml(details.callsign)}</strong>
+          <span class="row-aircraft">${escapeHtml(formatAircraftBadge(details.aircraft))}</span>
+        </div>
+        <div class="row-route">
+          <span>${escapeHtml(details.origin)} → ${escapeHtml(details.destination)}</span>
+          <span class="row-telemetry">${formatFlightLevel(flight.altitude)} · ${formatNumber(flight.speed, " kt")}</span>
+        </div>
+        <div class="row-pilot">
+          <span>${escapeHtml(details.username)}</span>
+        </div>
+      </div>
+    `;
 
-    const pilot = document.createElement("span");
-    pilot.className = "flight-list-pilot";
-    const pilotIcon = document.createElement("span");
-    pilotIcon.className = "material-symbols-rounded";
-    pilotIcon.setAttribute("aria-hidden", "true");
-    pilotIcon.textContent = "person";
-    const pilotName = document.createElement("span");
-    pilotName.textContent = details.username;
-    pilot.append(pilotIcon, pilotName);
-
-    const metrics = document.createElement("span");
-    metrics.className = "flight-list-metrics";
-    const route = document.createElement("span");
-    route.textContent = details.origin === "----" && details.destination === "----"
-      ? flight.matchReason
-      : `${details.origin} → ${details.destination}`;
-    const speed = document.createElement("span");
-    speed.textContent = formatNumber(flight.speed, " kt");
-    metrics.append(route, speed);
-
-    item.append(heading, pilot, metrics);
     item.addEventListener("click", () => focusFlight(id));
     fragment.append(item);
   });
+
   elements.flightsList.replaceChildren(fragment);
   elements.flightsList.scrollTop = previousScrollTop;
+}
 
-  if (focusedFlightId && elements.flightsList.closest(".flights-sidebar")?.offsetParent !== null) {
-    elements.flightsList.querySelector(`[data-flight-id="${CSS.escape(focusedFlightId)}"]`)?.focus({ preventScroll: true });
-  }
+function formatAircraftBadge(aircraftName) {
+  const cleaned = String(aircraftName || "")
+    .replace(/^(Airbus|Boeing|Comac|Embraer|Bombardier|McDonnell Douglas)\s+/i, "")
+    .replace(/\s+Dreamliner$/i, "")
+    .trim();
+  if (!cleaned || cleaned === "Commercial Jet") return "JET";
+  return cleaned.split(/\s+/)[0] || "A350";
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function makePlaneIcon(flight, selected = false) {
@@ -538,19 +963,17 @@ function makePlaneIcon(flight, selected = false) {
   return L.divIcon({
     className: "",
     html: element.outerHTML,
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
   });
 }
 
 function makePlaneMarkerElement(flight) {
   const element = document.createElement("div");
-  element.setAttribute("aria-label", "Select flight");
-  const icon = document.createElement("span");
-  icon.className = "material-symbols-rounded";
-  icon.setAttribute("aria-hidden", "true");
-  icon.textContent = "flight";
-  element.append(icon);
+  element.setAttribute("aria-label", `Select flight ${flight.callsign || ""}`);
+  element.innerHTML = `<svg viewBox="0 0 24 24" class="plane-svg" aria-hidden="true">
+    <path d="M12 2c-.6 0-1.1.4-1.3 1L8.5 9.5 2.2 11c-.7.2-1.2.8-1.2 1.5 0 .8.6 1.4 1.4 1.4l6.1-.5 2.5 7.6H9.8c-.4 0-.8.3-.9.7l-.4 1.3h7l-.4-1.3c-.1-.4-.5-.7-.9-.7h-1.2l2.5-7.6 6.1.5c.8 0 1.4-.6 1.4-1.4 0-.7-.5-1.3-1.2-1.5L15.5 9.5 13.3 3c-.2-.6-.7-1-1.3-1z"/>
+  </svg>`;
   updateMarkerElement(element, flight.matchReason);
   return element;
 }
@@ -561,6 +984,7 @@ function makeFlightTooltip(flight) {
   tooltip.className = "flight-tooltip-content";
 
   const header = document.createElement("div");
+  header.className = "tooltip-header";
   const callsign = document.createElement("strong");
   callsign.textContent = details.callsign;
   const aircraft = document.createElement("span");
@@ -568,7 +992,7 @@ function makeFlightTooltip(flight) {
   header.append(callsign, aircraft);
 
   const metrics = document.createElement("div");
-  metrics.className = "flight-tooltip-metrics";
+  metrics.className = "tooltip-metrics";
   const route = document.createElement("span");
   route.textContent = `${details.origin} → ${details.destination}`;
   const flightLevel = document.createElement("span");
@@ -601,40 +1025,20 @@ function normalizeHeading(value) {
   return ((heading % 360) + 360) % 360;
 }
 
-function focusFlight(id) {
-  selectFlight(id, { pan: true });
-}
-
-function selectFlight(id, options = {}) {
-  const flightId = String(id);
-  const flight = state.flights.find((item) => String(item.flightId || item.id || item.callsign) === flightId);
-  const stored = state.markers.get(String(id));
-  if (!flight) return;
-
+function focusFlight(flightId) {
   state.selectedFlightId = flightId;
-  elements.mapShell.classList.add("has-selected-flight");
-  renderSelectedFlight(flight);
+  const target = state.flights.find((flight) => getFlightId(flight) === flightId);
+  if (!target) return;
+
+  const lat = Number(target.latitude);
+  const lon = Number(target.longitude);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    map.setView([lat, lon], Math.max(map.getZoom(), 6), { animate: true });
+  }
+
+  renderSelectedFlight(target);
   renderMarkers(state.flights);
   renderFlightsSidebar(state.flights);
-  hydrateAircraftForFlight(flight);
-
-  if (stored) {
-    if (options.pan) {
-      map.setView(stored.marker.getLatLng(), Math.max(map.getZoom(), 7), { animate: true });
-    }
-  }
-}
-
-function syncSelectedFlight() {
-  if (!state.selectedFlightId) return;
-  const flight = state.flights.find((item) => String(item.flightId || item.id || item.callsign) === String(state.selectedFlightId));
-  if (flight) {
-    renderSelectedFlight(flight);
-    hydrateAircraftForFlight(flight);
-  } else {
-    state.selectedFlightId = null;
-    renderSelectedFlight(null);
-  }
 }
 
 function renderSelectedFlight(flight) {
@@ -648,10 +1052,9 @@ function renderSelectedFlight(flight) {
   const details = getFlightDetails(flight);
   hydrateFlightPlanForFlight(flight);
   elements.selectedPanel.hidden = false;
-  elements.selectedRule.textContent = flight.matchReason;
   elements.selectedCallsign.textContent = details.callsign;
   elements.pilotName.textContent = details.username;
-  elements.pilotOrg.textContent = details.organization;
+  if (elements.pilotOrg) elements.pilotOrg.textContent = details.organization;
   elements.originCode.textContent = details.origin;
   elements.destinationCode.textContent = details.destination;
   elements.altitudeValue.textContent = formatNumber(flight.altitude, " ft");
@@ -659,9 +1062,35 @@ function renderSelectedFlight(flight) {
   elements.headingValue.textContent = formatNumber(flight.heading, "°");
   renderRouteMetrics(flight);
   renderSelectedRoute(flight);
-  elements.flightPlanValue.textContent = details.flightPlan;
+  if (elements.flightPlanValue) elements.flightPlanValue.textContent = details.flightPlan;
   elements.aircraftValue.textContent = details.aircraft;
   elements.liveryValue.textContent = details.livery;
+
+  // Waypoints inline trail
+  if (elements.flightPlanWaypoints) {
+    elements.flightPlanWaypoints.innerHTML = "";
+    const routeText = details.flightPlan || "";
+    const codes = routeText.split(/[\s,→\-]+/).map((s) => s.trim()).filter(Boolean);
+    if (codes.length > 0) {
+      codes.forEach((code, idx) => {
+        if (idx > 0) {
+          const arrow = document.createElement("span");
+          arrow.className = "wp-arrow";
+          arrow.textContent = "→";
+          elements.flightPlanWaypoints.appendChild(arrow);
+        }
+        const span = document.createElement("span");
+        span.className = "wp-code";
+        if (idx === 0 || idx === codes.length - 1) {
+          span.classList.add("is-end");
+        }
+        span.textContent = code;
+        elements.flightPlanWaypoints.appendChild(span);
+      });
+    } else {
+      elements.flightPlanWaypoints.textContent = t("directVectors");
+    }
+  }
 }
 
 function renderSelectedRoute(flight) {
@@ -680,8 +1109,8 @@ function renderSelectedRoute(flight) {
     interactive: false,
     color: "#ffffff",
     weight: 4,
-    opacity: 0.68,
-    dashArray: "1 7",
+    opacity: 0.9,
+    dashArray: "2 6",
     lineCap: "round",
     lineJoin: "round",
   }).addTo(routeLayer);
@@ -689,10 +1118,10 @@ function renderSelectedRoute(flight) {
   L.polyline(latLngs, {
     pane: "selectedRoute",
     interactive: false,
-    color: "#0ea5e9",
-    weight: 2,
-    opacity: 0.92,
-    dashArray: "1 7",
+    color: "#0052a5",
+    weight: 2.5,
+    opacity: 1,
+    dashArray: "2 6",
     lineCap: "round",
     lineJoin: "round",
   }).addTo(routeLayer);
@@ -732,25 +1161,27 @@ function renderRouteMetrics(flight) {
   const metrics = calculateRouteMetrics(flight, flightPlan);
 
   if (!metrics) {
-    elements.routeEstimateStatus.textContent = flightPlan ? "Route unavailable" : "Loading route…";
-    elements.plannedDistanceValue.textContent = "-";
+    if (elements.routeEstimateStatus) elements.routeEstimateStatus.textContent = flightPlan ? t("routeUnavailable") : t("loading");
+    if (elements.plannedDistanceValue) elements.plannedDistanceValue.textContent = "-";
     elements.travelledDistanceValue.textContent = "-";
     elements.remainingDistanceValue.textContent = "-";
     elements.routeProgressValue.textContent = "-";
-    elements.remainingTimeValue.textContent = "-";
+    if (elements.remainingTimeValue) elements.remainingTimeValue.textContent = "-";
     elements.etaValue.textContent = "-";
     setRouteProgressBar(0);
     return;
   }
 
-  elements.routeEstimateStatus.textContent = metrics.offRouteNm > 25
-    ? `${formatNauticalMiles(metrics.offRouteNm)} off route`
-    : "Flight-plan estimate";
-  elements.plannedDistanceValue.textContent = formatNauticalMiles(metrics.totalNm);
+  if (elements.routeEstimateStatus) {
+    elements.routeEstimateStatus.textContent = metrics.offRouteNm > 25
+      ? `${formatNauticalMiles(metrics.offRouteNm)} ${t("offRoute")}`
+      : t("flightPlanEstimate");
+  }
+  if (elements.plannedDistanceValue) elements.plannedDistanceValue.textContent = formatNauticalMiles(metrics.totalNm);
   elements.travelledDistanceValue.textContent = formatNauticalMiles(metrics.travelledNm);
-  elements.remainingDistanceValue.textContent = formatNauticalMiles(metrics.remainingNm);
+  elements.remainingDistanceValue.textContent = `${formatNauticalMiles(metrics.remainingNm)} ${t("leftSuffix")}`;
   elements.routeProgressValue.textContent = `${Math.round(metrics.progressPercent)}%`;
-  elements.remainingTimeValue.textContent = formatDuration(metrics.remainingHours);
+  if (elements.remainingTimeValue) elements.remainingTimeValue.textContent = formatDuration(metrics.remainingHours);
   elements.etaValue.textContent = formatEta(metrics.remainingHours);
   setRouteProgressBar(metrics.progressPercent);
 }
@@ -779,48 +1210,26 @@ function formatNumber(value, suffix) {
   return `${Math.round(number).toLocaleString()}${suffix}`;
 }
 
-function formatCoordinate(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "-";
-  return number.toFixed(4);
-}
-
 function calculateRouteMetrics(flight, flightPlan) {
   if (!flightPlan) return null;
-
   const routePoints = getFlightPlanCoordinates(flightPlan);
-  const aircraft = normalizeCoordinate({ latitude: flight.latitude, longitude: flight.longitude });
-  if (routePoints.length < 2 || !aircraft) return null;
+  if (routePoints.length < 2) return null;
 
-  let totalNm = 0;
-  let bestProjection = null;
+  const lat = Number(flight.latitude);
+  const lon = Number(flight.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
-  for (let index = 0; index < routePoints.length - 1; index += 1) {
-    const start = routePoints[index];
-    const end = routePoints[index + 1];
-    const segmentNm = haversineNm(start, end);
-    if (!Number.isFinite(segmentNm) || segmentNm <= 0) continue;
+  const currentPoint = { latitude: lat, longitude: lon };
+  const totalNm = calculatePolylineDistanceNm(routePoints);
+  if (totalNm <= 0) return null;
 
-    const projection = projectCoordinateOntoSegment(aircraft, start, end);
-    const travelledNm = totalNm + segmentNm * projection.fraction;
-    if (!bestProjection || projection.distanceNm < bestProjection.distanceNm) {
-      bestProjection = {
-        distanceNm: projection.distanceNm,
-        travelledNm,
-      };
-    }
-    totalNm += segmentNm;
-  }
-
-  if (!bestProjection || totalNm <= 0) return null;
-
-  const travelledNm = Math.max(0, Math.min(totalNm, bestProjection.travelledNm));
+  const nearest = findNearestPointOnRoute(currentPoint, routePoints);
+  const travelledNm = Math.min(totalNm, calculateDistanceAlongRouteNm(routePoints, nearest.index, nearest.point));
   const remainingNm = Math.max(0, totalNm - travelledNm);
-  const progressPercent = (travelledNm / totalNm) * 100;
-  const groundspeed = Number(flight.speed);
-  const remainingHours = Number.isFinite(groundspeed) && groundspeed >= 30
-    ? remainingNm / groundspeed
-    : Number.NaN;
+  const progressPercent = Math.max(0, Math.min(100, (travelledNm / totalNm) * 100));
+
+  const speedKts = Math.max(1, Number(flight.speed) || 0);
+  const remainingHours = speedKts > 0 ? remainingNm / speedKts : 0;
 
   return {
     totalNm,
@@ -828,133 +1237,143 @@ function calculateRouteMetrics(flight, flightPlan) {
     remainingNm,
     progressPercent,
     remainingHours,
-    offRouteNm: bestProjection.distanceNm,
+    offRouteNm: nearest.distanceNm,
   };
 }
 
 function getFlightPlanCoordinates(flightPlan) {
-  const coordinates = [];
-  const items = Array.isArray(flightPlan.flightPlanItems) ? flightPlan.flightPlanItems : [];
+  const candidates = [
+    flightPlan.waypoints,
+    flightPlan.routeCoordinates,
+    flightPlan.coordinates,
+    flightPlan.fixes,
+    flightPlan.route,
+  ];
 
-  const visitItem = (item) => {
-    if (!item || typeof item !== "object") return;
-    const children = Array.isArray(item.children) ? item.children : [];
-    if (children.length) {
-      children.forEach(visitItem);
-      return;
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (Array.isArray(candidate)) {
+      const parsed = candidate
+        .map(normalizeCoordinatePoint)
+        .filter((point) => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+      if (parsed.length >= 2) return parsed;
     }
-    appendRouteCoordinate(coordinates, item.location || item.coordinate || item);
-  };
-
-  items.forEach(visitItem);
-
-  if (coordinates.length < 2 && Array.isArray(flightPlan.waypoints)) {
-    flightPlan.waypoints.forEach((waypoint) => {
-      if (waypoint && typeof waypoint === "object") {
-        appendRouteCoordinate(coordinates, waypoint.location || waypoint.coordinate || waypoint);
-      }
-    });
   }
 
-  return coordinates;
+  return [];
 }
 
-function appendRouteCoordinate(coordinates, value) {
-  const coordinate = normalizeCoordinate(value);
-  if (!coordinate) return;
-  const previous = coordinates[coordinates.length - 1];
-  if (previous && haversineNm(previous, coordinate) < 0.01) return;
-  coordinates.push(coordinate);
+function normalizeCoordinatePoint(item) {
+  if (!item) return null;
+  if (Array.isArray(item) && item.length >= 2) {
+    return { latitude: Number(item[0]), longitude: Number(item[1]) };
+  }
+  if (typeof item === "object") {
+    const lat = firstText(item.latitude, item.lat, item.Latitude, item.Lat);
+    const lon = firstText(item.longitude, item.lon, item.lng, item.Longitude, item.Lng);
+    if (lat !== "----" && lon !== "----") {
+      return { latitude: Number(lat), longitude: Number(lon) };
+    }
+  }
+  return null;
 }
 
-function normalizeCoordinate(value) {
-  if (!value || typeof value !== "object") return null;
-  const latitude = Number(value.latitude ?? value.lat);
-  const longitude = Number(value.longitude ?? value.lng ?? value.lon);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
-  if (latitude === 0 && longitude === 0) return null;
-  return { latitude, longitude };
+function findNearestPointOnRoute(point, routePoints) {
+  let best = {
+    distanceNm: Number.POSITIVE_INFINITY,
+    index: 0,
+    point: routePoints[0],
+  };
+
+  for (let i = 0; i < routePoints.length - 1; i += 1) {
+    const a = routePoints[i];
+    const b = routePoints[i + 1];
+    const projected = projectPointOnSegment(point, a, b);
+    const distanceNm = haversineDistanceNm(point, projected);
+
+    if (distanceNm < best.distanceNm) {
+      best = { distanceNm, index: i, point: projected };
+    }
+  }
+
+  return best;
 }
 
-function haversineNm(start, end) {
-  const startLat = toRadians(start.latitude);
-  const endLat = toRadians(end.latitude);
-  const deltaLat = endLat - startLat;
-  const deltaLon = toRadians(normalizeLongitudeDelta(end.longitude - start.longitude));
-  const sinLat = Math.sin(deltaLat / 2);
-  const sinLon = Math.sin(deltaLon / 2);
-  const haversine = sinLat * sinLat + Math.cos(startLat) * Math.cos(endLat) * sinLon * sinLon;
-  const angle = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(Math.max(0, 1 - haversine)));
-  return EARTH_RADIUS_NM * angle;
-}
+function projectPointOnSegment(p, a, b) {
+  const segLength = haversineDistanceNm(a, b);
+  if (segLength <= 0.0001) return a;
 
-function projectCoordinateOntoSegment(point, start, end) {
-  const latitudeScale = EARTH_RADIUS_NM;
-  const longitudeScale = EARTH_RADIUS_NM * Math.cos(toRadians(point.latitude));
-  const startX = toRadians(normalizeLongitudeDelta(start.longitude - point.longitude)) * longitudeScale;
-  const startY = toRadians(start.latitude - point.latitude) * latitudeScale;
-  const endX = toRadians(normalizeLongitudeDelta(end.longitude - point.longitude)) * longitudeScale;
-  const endY = toRadians(end.latitude - point.latitude) * latitudeScale;
-  const deltaX = endX - startX;
-  const deltaY = endY - startY;
-  const lengthSquared = deltaX * deltaX + deltaY * deltaY;
-  const rawFraction = lengthSquared > 0
-    ? -(startX * deltaX + startY * deltaY) / lengthSquared
-    : 0;
-  const fraction = Math.max(0, Math.min(1, rawFraction));
-  const projectedX = startX + deltaX * fraction;
-  const projectedY = startY + deltaY * fraction;
+  const dLat = b.latitude - a.latitude;
+  const dLon = b.longitude - a.longitude;
+  const t = Math.max(0, Math.min(1, ((p.latitude - a.latitude) * dLat + (p.longitude - a.longitude) * dLon) / (dLat * dLat + dLon * dLon || 1)));
 
   return {
-    fraction,
-    distanceNm: Math.hypot(projectedX, projectedY),
+    latitude: a.latitude + t * dLat,
+    longitude: a.longitude + t * dLon,
   };
 }
 
-function normalizeLongitudeDelta(value) {
-  return ((value + 540) % 360) - 180;
+function calculateDistanceAlongRouteNm(routePoints, segmentIndex, projectedPoint) {
+  let distance = 0;
+  for (let i = 0; i < segmentIndex; i += 1) {
+    distance += haversineDistanceNm(routePoints[i], routePoints[i + 1]);
+  }
+  distance += haversineDistanceNm(routePoints[segmentIndex], projectedPoint);
+  return distance;
 }
 
-function toRadians(value) {
-  return value * Math.PI / 180;
+function calculatePolylineDistanceNm(routePoints) {
+  let distance = 0;
+  for (let i = 0; i < routePoints.length - 1; i += 1) {
+    distance += haversineDistanceNm(routePoints[i], routePoints[i + 1]);
+  }
+  return distance;
+}
+
+function haversineDistanceNm(pointA, pointB) {
+  const toRadians = (deg) => (deg * Math.PI) / 180;
+  const lat1 = toRadians(pointA.latitude);
+  const lat2 = toRadians(pointB.latitude);
+  const deltaLat = toRadians(pointB.latitude - pointA.latitude);
+  const deltaLon = toRadians(pointB.longitude - pointA.longitude);
+
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return EARTH_RADIUS_NM * c;
 }
 
 function formatNauticalMiles(value) {
-  if (!Number.isFinite(value)) return "-";
-  return `${Math.round(value).toLocaleString()} NM`;
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  return `${Math.round(number).toLocaleString()} NM`;
 }
 
-function formatDuration(hours) {
-  if (!Number.isFinite(hours) || hours < 0) return "-";
-  const totalMinutes = Math.max(0, Math.round(hours * 60));
-  if (totalMinutes < 60) return `${totalMinutes}m`;
-  const wholeHours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes ? `${wholeHours}h ${minutes}m` : `${wholeHours}h`;
+function formatDuration(hoursValue) {
+  const hours = Number(hoursValue);
+  if (!Number.isFinite(hours) || hours <= 0) return "-";
+
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${h}h ${String(m).padStart(2, "0")}m`;
 }
 
-function formatEta(hours) {
-  if (!Number.isFinite(hours) || hours < 0) return "-";
-  const now = new Date();
-  const eta = new Date(now.getTime() + hours * 60 * 60 * 1000);
+function formatEta(hoursValue) {
+  const hours = Number(hoursValue);
+  if (!Number.isFinite(hours) || hours <= 0) return "-";
+
+  const eta = new Date(Date.now() + hours * 3600 * 1000);
   const time = new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
     timeZone: "UTC",
   }).format(eta);
-  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const etaDayUtc = Date.UTC(eta.getUTCFullYear(), eta.getUTCMonth(), eta.getUTCDate());
-  const dayOffset = Math.round((etaDayUtc - todayUtc) / (24 * 60 * 60 * 1000));
-  return `${time} Z${dayOffset > 0 ? ` +${dayOffset}` : ""}`;
-}
 
-function showToast(message) {
-  elements.toast.textContent = message;
-  elements.toast.classList.add("visible");
-  window.clearTimeout(showToast.timer);
-  showToast.timer = window.setTimeout(() => elements.toast.classList.remove("visible"), 3800);
+  return `${time} Z`;
 }
 
 function getFlightDetails(flight) {
@@ -996,14 +1415,21 @@ function getFlightDetails(flight) {
   );
 
   return {
-    callsign: firstText(flight.callsign, "Unknown Flight"),
-    username: firstText(flight.username, flight.userName, flight.pilotName, flight.displayName, "Unknown Pilot"),
-    organization: firstText(flight.virtualOrganization, flight.virtualOrganizationTag, flight.organization, "Organization unavailable"),
-    origin: formatAirport(origin),
-    destination: formatAirport(destination),
-    flightPlan: formatFlightPlan(route),
-    aircraft: aircraft.name,
-    livery: aircraft.livery,
+    flightId,
+    callsign: firstText(flight.callsign, flight.flightNumber, "Unknown Callsign"),
+    username: firstText(flight.username, flight.displayName, flight.pilotName, "Anonymous Pilot"),
+    organization: firstText(
+      flight.virtualOrganization,
+      flight.virtualOrganizationTag,
+      flight.organization,
+      flight.matchReason,
+      "China Southern Virtual Group",
+    ),
+    origin,
+    destination,
+    aircraft: firstText(aircraft.name, flight.aircraftName, "Commercial Jet"),
+    livery: firstText(aircraft.livery, flight.liveryName, "China Southern Airlines"),
+    flightPlan: route === "----" ? t("noFlightPlanFiled") : route,
   };
 }
 
@@ -1013,7 +1439,7 @@ function getFlightId(flight) {
 
 async function hydrateFlightPlanForFlight(flight) {
   const flightId = getFlightId(flight);
-  if (!flightId || !state.expertSessionId || state.flightPlansByFlightId.has(flightId) || state.requestedFlightPlans.has(flightId)) {
+  if (!flightId || state.demoMode || !state.expertSessionId || state.flightPlansByFlightId.has(flightId) || state.requestedFlightPlans.has(flightId)) {
     return;
   }
 
@@ -1038,125 +1464,57 @@ async function hydrateFlightPlanForFlight(flight) {
 
 function getRouteEndpoint(flightPlan, position) {
   const waypoints = normalizeRouteValues(flightPlan.waypoints);
-  if (waypoints.length) return position === "first" ? waypoints[0] : waypoints[waypoints.length - 1];
-
-  const items = Array.isArray(flightPlan.flightPlanItems) ? flightPlan.flightPlanItems : [];
-  const identifiers = items.map((item) => firstText(item.identifier, item.name)).filter(Boolean);
-  if (!identifiers.length) return "";
-  return position === "first" ? identifiers[0] : identifiers[identifiers.length - 1];
+  if (!waypoints.length) return "----";
+  const item = position === "first" ? waypoints[0] : waypoints[waypoints.length - 1];
+  return extractAirportCandidate(item);
 }
 
 function getFlightPlanItemRoute(flightPlan) {
   const waypoints = normalizeRouteValues(flightPlan.waypoints);
-  if (waypoints.length) return waypoints.join(" ");
-
-  const items = Array.isArray(flightPlan.flightPlanItems) ? flightPlan.flightPlanItems : [];
-  return items.map((item) => firstText(item.identifier, item.name)).filter(Boolean).join(" ");
+  if (!waypoints.length) return "----";
+  return waypoints.map(extractAirportCandidate).filter(Boolean).join(" ");
 }
 
 function normalizeRouteValues(value) {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (item && typeof item === "object") {
-          return firstText(item.identifier, item.name, item.code, item.type);
-        }
-        return firstText(item);
-      })
-      .filter(Boolean);
-  }
-  return firstText(value).split(/\s+/).filter(Boolean);
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return value.split(/\s+/).filter(Boolean);
+  return [];
+}
+
+function extractAirportCandidate(item) {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return "----";
+  return firstText(item.name, item.identifier, item.icao, item.fix, item.id);
 }
 
 function getAircraftInfo(flight) {
   const aircraftId = firstText(flight.aircraftId);
   const liveryId = firstText(flight.liveryId);
-  const aircraft = state.aircraftById.get(aircraftId);
-  const livery = state.liveryById.get(liveryId)
-    || (state.liveriesByAircraftId.get(aircraftId) || []).find((item) => firstText(item.id, item.liveryId) === liveryId);
 
-  const aircraftName = firstText(
-    flight.aircraft,
-    flight.aircraftName,
-    aircraft?.name,
-    aircraft?.aircraftName,
-    aircraft?.displayName,
-    aircraft?.shortName,
-    aircraft?.icao,
-  );
-  const liveryName = firstText(
-    flight.livery,
-    flight.liveryName,
-    livery?.name,
-    livery?.liveryName,
-    livery?.displayName,
-    livery?.airlineName,
-  );
+  const aircraft = state.aircraftById.get(aircraftId);
+  const livery = state.liveryById.get(liveryId);
 
   return {
-    name: aircraftName || (aircraftId ? `Unknown aircraft (${aircraftId.slice(0, 8)})` : "Unknown Aircraft"),
-    livery: liveryName || (liveryId ? `Unknown livery (${liveryId.slice(0, 8)})` : "Livery unavailable"),
+    name: firstText(aircraft?.name, aircraft?.aircraftName, flight.aircraftName),
+    livery: firstText(livery?.name, livery?.liveryName, flight.liveryName),
   };
 }
 
-async function hydrateAircraftForFlight(flight) {
-  const aircraftId = firstText(flight.aircraftId);
-  if (!aircraftId || state.requestedAircraftLiveries.has(aircraftId)) return;
-
-  state.requestedAircraftLiveries.add(aircraftId);
-
-  try {
-    const payload = await request(`/aircraft/${aircraftId}/liveries`);
-    normalizeResultArray(payload).forEach((livery) => {
-      const id = firstText(livery.id, livery.liveryId);
-      if (id) state.liveryById.set(id, { ...livery, aircraftId });
-    });
-
-    const selected = state.flights.find((item) => String(item.flightId || item.id || item.callsign) === String(state.selectedFlightId));
-    if (selected) renderSelectedFlight(selected);
-  } catch {
-    // Some API keys/versions do not expose aircraft-specific livery lookup.
+function firstText(...candidates) {
+  for (const item of candidates) {
+    if (typeof item === "string" && item.trim()) return item.trim();
+    if (typeof item === "number" && Number.isFinite(item)) return String(item);
   }
+  return "----";
 }
 
-function normalizeResultArray(payload) {
-  if (Array.isArray(payload?.result)) return payload.result;
-  if (Array.isArray(payload?.result?.data)) return payload.result.data;
-  if (Array.isArray(payload?.data)) return payload.data;
-  return [];
-}
-
-function firstText(...values) {
-  const value = values.find((item) => {
-    if (Array.isArray(item)) return item.length > 0;
-    if (typeof item === "object" && item !== null) return false;
-    return item !== undefined && item !== null && String(item).trim() !== "";
-  });
-  if (Array.isArray(value)) return value.join(" ");
-  return value === undefined || value === null ? "" : String(value).trim();
-}
-
-function formatAirport(value) {
-  const text = firstText(value);
-  if (!text) return "----";
-  return text.toUpperCase();
-}
-
-function formatFlightPlan(value) {
-  const text = firstText(value);
-  if (!text) return "No flight plan available.";
-  return text.replace(/\s+/g, " ").trim();
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (char) => {
-    const entities = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-    return entities[char];
-  });
+let toastTimer = null;
+function showToast(message) {
+  if (!elements.toast) return;
+  elements.toast.textContent = message;
+  elements.toast.classList.add("is-visible");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    elements.toast.classList.remove("is-visible");
+  }, 3500);
 }
