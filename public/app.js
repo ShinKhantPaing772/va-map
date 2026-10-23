@@ -1014,9 +1014,15 @@ function renderRouteMetrics(flight) {
 }
 
 function setRouteProgressBar(percent) {
+  if (!elements.routeProgressBar) return;
   const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
-  elements.routeProgressBar.style.setProperty("--route-progress", `${safePercent}%`);
+  const value = `${safePercent}%`;
+  elements.routeProgressBar.style.setProperty("--route-progress", value);
   elements.routeProgressBar.setAttribute("aria-valuenow", String(Math.round(safePercent)));
+  const fill = elements.routeProgressBar.querySelector(".route-track-fill");
+  const plane = elements.routeProgressBar.querySelector(".route-track-plane");
+  if (fill) fill.style.width = value;
+  if (plane) plane.style.left = value;
 }
 
 function fitToFlights() {
