@@ -48,10 +48,7 @@ const elements = {
   liveryValue: document.querySelector("#liveryValue"),
   pilotSearchInput: document.querySelector("#pilotSearchInput"),
   searchClearButton: document.querySelector("#searchClearButton"),
-  demoToggleButton: document.querySelector("#demoToggleButton"),
-  emptyDemoButton: document.querySelector("#emptyDemoButton"),
   airborneLabel: document.querySelector("#airborneLabel"),
-  demoBtnLabel: document.querySelector("#demoBtnLabel"),
   pilotsBtnLabel: document.querySelector("#pilotsBtnLabel"),
   langToggleButton: document.querySelector("#langToggleButton"),
   langBtnLabel: document.querySelector("#langBtnLabel"),
@@ -82,7 +79,6 @@ function detectInitialLocale() {
 const I18N = {
   en: {
     airborne: "Airborne",
-    demoData: "Demo Data",
     pilots: "Pilots",
     fleetTitle: "CZVG Fleet",
     filterPlaceholder: "Filter fleet...",
@@ -90,7 +86,6 @@ const I18N = {
     noMatchingSub: (q) => `No flights matching "${q}"`,
     noAirborneTitle: "No CZVG pilots airborne",
     noAirborneSub: "The live roster will update automatically.",
-    loadSimFlights: "Load Simulated Flights",
     origin: "Origin",
     destination: "Destination",
     altitude: "Altitude",
@@ -100,15 +95,10 @@ const I18N = {
     route: "Route",
     leftSuffix: "left",
     statusLive: "Live",
-    statusDemo: "Demo",
     statusScanning: "Scanning",
     statusConnecting: "Connecting",
-    statusReconnecting: "Reconnecting",
     statusPaused: "Paused",
     statusOffline: "Offline",
-    statusSimReady: "Sim Ready",
-    toastSimActive: "Simulated CZVG Fleet activated.",
-    toastLiveResumed: "Resumed live Expert Server tracking.",
     radarStandby: "Radar Standby",
     pausedTitle: "Live updates paused",
     pausedDesc: "Flight radar polling was paused after 5 minutes of inactivity.",
@@ -128,7 +118,6 @@ const I18N = {
   },
   zh: {
     airborne: "在飞",
-    demoData: "演示数据",
     pilots: "机组",
     fleetTitle: "南航机队",
     filterPlaceholder: "搜索航班或飞行员...",
@@ -136,7 +125,6 @@ const I18N = {
     noMatchingSub: (q) => `未找到匹配 "${q}" 的航班`,
     noAirborneTitle: "暂无在飞航班",
     noAirborneSub: "实时机队将自动刷新。",
-    loadSimFlights: "加载演示航班",
     origin: "始发",
     destination: "目的",
     altitude: "高度",
@@ -146,15 +134,10 @@ const I18N = {
     route: "航路",
     leftSuffix: "剩余",
     statusLive: "实时",
-    statusDemo: "演示",
     statusScanning: "扫描中",
     statusConnecting: "连接中",
-    statusReconnecting: "重连中",
     statusPaused: "已暂停",
     statusOffline: "离线",
-    statusSimReady: "演示就绪",
-    toastSimActive: "已启用模拟机队。",
-    toastLiveResumed: "已恢复实时雷达追踪。",
     radarStandby: "雷达待机",
     pausedTitle: "实时追踪已暂停",
     pausedDesc: "由于 5 分钟未操作，航班雷达已自动进入待机状态。",
@@ -180,7 +163,6 @@ const state = {
   connectionLabelKey: "statusConnecting",
   running: false,
   paused: false,
-  demoMode: false,
   filterQuery: "",
   expertSessionId: null,
   sessionLastLoaded: 0,
@@ -199,108 +181,6 @@ const state = {
   refreshTimer: null,
   idleTimer: null,
 };
-
-const DEMO_FLIGHTS = [
-  {
-    flightId: "demo-csn327",
-    callsign: "CSN327VG",
-    username: "Capt_Li",
-    virtualOrganization: "China Southern Virtual",
-    matchReason: "China Southern VG",
-    latitude: 31.85,
-    longitude: 125.40,
-    altitude: 39000,
-    speed: 492,
-    heading: 68,
-    verticalSpeed: 0,
-    originAirport: "ZGGG",
-    destinationAirport: "RJAA",
-    aircraftName: "Airbus A350-900",
-    liveryName: "China Southern Airlines",
-    route: "ZGGG LIG WHA P23 KANSU RJAA",
-    flightPlanCoordinates: [
-      { latitude: 23.39, longitude: 113.30 },
-      { latitude: 26.50, longitude: 116.80 },
-      { latitude: 31.85, longitude: 125.40 },
-      { latitude: 33.20, longitude: 133.10 },
-      { latitude: 35.76, longitude: 140.38 },
-    ],
-  },
-  {
-    flightId: "demo-csn301",
-    callsign: "CSN301VG",
-    username: "FirstOfficer_Chen",
-    virtualOrganization: "[CZVG] Senior Pilot",
-    matchReason: "China Southern VG",
-    latitude: 1.35,
-    longitude: 119.80,
-    altitude: 35000,
-    speed: 476,
-    heading: 158,
-    verticalSpeed: 0,
-    originAirport: "ZGGG",
-    destinationAirport: "YSSY",
-    aircraftName: "Boeing 777-300ER",
-    liveryName: "China Southern Airlines",
-    route: "ZGGG SIKOU BUNTA YSSY",
-    flightPlanCoordinates: [
-      { latitude: 23.39, longitude: 113.30 },
-      { latitude: 12.00, longitude: 116.00 },
-      { latitude: 1.35, longitude: 119.80 },
-      { latitude: -15.00, longitude: 128.00 },
-      { latitude: -33.94, longitude: 151.17 },
-    ],
-  },
-  {
-    flightId: "demo-csn399",
-    callsign: "CSN399VG",
-    username: "Pilot_Wang",
-    virtualOrganization: "CZVG Operations",
-    matchReason: "China Southern VG",
-    latitude: 53.20,
-    longitude: 48.60,
-    altitude: 38000,
-    speed: 465,
-    heading: 295,
-    verticalSpeed: 0,
-    originAirport: "ZGSZ",
-    destinationAirport: "EDDF",
-    aircraftName: "Boeing 787-9 Dreamliner",
-    liveryName: "China Southern Airlines",
-    route: "ZGSZ POLHO MORIT KUBER EDDF",
-    flightPlanCoordinates: [
-      { latitude: 22.63, longitude: 113.81 },
-      { latitude: 38.00, longitude: 85.00 },
-      { latitude: 53.20, longitude: 48.60 },
-      { latitude: 52.00, longitude: 20.00 },
-      { latitude: 50.03, longitude: 8.57 },
-    ],
-  },
-  {
-    flightId: "demo-csn673",
-    callsign: "CSN673VG",
-    username: "SkyWalker",
-    virtualOrganization: "[CZVG]",
-    matchReason: "China Southern VG",
-    latitude: 14.20,
-    longitude: 106.50,
-    altitude: 37000,
-    speed: 458,
-    heading: 195,
-    verticalSpeed: 0,
-    originAirport: "ZBAD",
-    destinationAirport: "WSSS",
-    aircraftName: "Airbus A330-300",
-    liveryName: "China Southern Airlines",
-    route: "ZBAD WHA GURBO WSSS",
-    flightPlanCoordinates: [
-      { latitude: 39.50, longitude: 116.41 },
-      { latitude: 28.00, longitude: 112.00 },
-      { latitude: 14.20, longitude: 106.50 },
-      { latitude: 1.36, longitude: 103.99 },
-    ],
-  },
-];
 
 const map = L.map("map", {
   worldCopyJump: true,
@@ -361,10 +241,6 @@ if (elements.resetMapButton) elements.resetMapButton.addEventListener("click", f
 if (elements.hideSidebarButton) elements.hideSidebarButton.addEventListener("click", () => setSidebarHidden(true));
 if (elements.showSidebarButton) elements.showSidebarButton.addEventListener("click", () => setSidebarHidden(false));
 
-if (elements.demoToggleButton) {
-  elements.demoToggleButton.addEventListener("click", toggleDemoFleet);
-}
-
 if (elements.langToggleButton) {
   elements.langToggleButton.addEventListener("click", () => {
     setLocale(state.locale === "zh" ? "en" : "zh");
@@ -409,7 +285,6 @@ function setLocale(nextLocale, persist = true) {
 function applyLocaleStrings() {
   document.documentElement.lang = state.locale === "zh" ? "zh-CN" : "en";
   if (elements.airborneLabel) elements.airborneLabel.textContent = t("airborne");
-  if (elements.demoBtnLabel) elements.demoBtnLabel.textContent = t("demoData");
   if (elements.pilotsBtnLabel) elements.pilotsBtnLabel.textContent = t("pilots");
   if (elements.langBtnLabel) elements.langBtnLabel.textContent = state.locale === "zh" ? "EN" : "中文";
   if (elements.flightsSidebarTitle) elements.flightsSidebarTitle.textContent = t("fleetTitle");
@@ -450,8 +325,6 @@ function applyLocaleStrings() {
     if (strong) strong.textContent = t("scanningTitle");
     const span = emptyBlock.querySelector("span:not(.material-symbols-rounded)");
     if (span) span.textContent = t("scanningSub");
-    const demoBtnSpan = emptyBlock.querySelector(".empty-action-btn span");
-    if (demoBtnSpan) demoBtnSpan.textContent = t("loadSimFlights");
   }
 
   // Toolbars & icons
@@ -463,12 +336,6 @@ function applyLocaleStrings() {
   if (state.connectionLabelKey && elements.connectionLabel) {
     elements.connectionLabel.textContent = t(state.connectionLabelKey);
   }
-}
-
-if (elements.emptyDemoButton) {
-  elements.emptyDemoButton.addEventListener("click", () => {
-    if (!state.demoMode) toggleDemoFleet();
-  });
 }
 
 if (elements.pilotSearchInput) {
@@ -495,50 +362,6 @@ applyLocaleStrings();
 
 document.addEventListener("pointerdown", resetIdleTimer, { passive: true });
 document.addEventListener("keydown", resetIdleTimer);
-
-function toggleDemoFleet() {
-  state.demoMode = !state.demoMode;
-  if (state.demoMode) {
-    elements.demoToggleButton?.classList.add("is-active");
-    loadDemoData();
-    showToast(t("toastSimActive"));
-  } else {
-    elements.demoToggleButton?.classList.remove("is-active");
-    state.flightPlansByFlightId.clear();
-    state.flights = [];
-    renderMarkers([]);
-    renderFlightsSidebar([]);
-    renderSelectedFlight(null);
-    setConnectionState("connecting", "statusReconnecting");
-    loadFlights();
-    showToast(t("toastLiveResumed"));
-  }
-}
-
-function loadDemoData() {
-  state.flights = DEMO_FLIGHTS.map((f) => ({ ...f }));
-  DEMO_FLIGHTS.forEach((f) => {
-    state.flightPlansByFlightId.set(f.flightId, {
-      originAirport: f.originAirport,
-      destinationAirport: f.destinationAirport,
-      route: f.route,
-      waypoints: f.flightPlanCoordinates,
-    });
-  });
-
-  setConnectionState("live", "statusDemo");
-  if (elements.matchCount) elements.matchCount.textContent = String(state.flights.length);
-  if (elements.totalCount) elements.totalCount.textContent = "1,248";
-  if (elements.updatedAt) elements.updatedAt.textContent = formatUpdatedAt(new Date());
-  elements.mapShell.classList.remove("is-loading");
-
-  renderMarkers(state.flights);
-  renderFlightsSidebar(state.flights);
-  if (!state.hasFitBounds) {
-    fitToFlights();
-    state.hasFitBounds = true;
-  }
-}
 
 function closeSelectedFlight() {
   state.selectedFlightId = null;
@@ -603,9 +426,7 @@ async function startTracking() {
 
 async function refreshLoop() {
   if (state.paused) return;
-  if (!state.demoMode) {
-    await loadFlights();
-  }
+  await loadFlights();
   window.clearTimeout(state.refreshTimer);
   if (!state.paused) {
     state.refreshTimer = window.setTimeout(refreshLoop, FLIGHT_REFRESH_MS);
@@ -657,18 +478,9 @@ async function loadFlights() {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to reach Infinite Flight API.";
-    if (message.includes("INFINITE_FLIGHT_API_KEY") || message.includes("503")) {
-      setConnectionState("offline", "statusSimReady");
-      if (!state.demoMode && state.flights.length === 0) {
-        loadDemoData();
-        state.demoMode = true;
-        elements.demoToggleButton?.classList.add("is-active");
-        showToast(t("toastSimActive"));
-        return;
-      }
-    } else {
-      setConnectionState("offline", "statusOffline");
-    }
+    // No simulated traffic fallback: on failure the radar reports the real
+    // connection state so the live API (or its key) can be fixed.
+    setConnectionState("offline", "statusOffline");
     elements.mapShell.classList.remove("is-loading");
     elements.mapShell.setAttribute("aria-busy", "false");
     showToast(message);
@@ -699,10 +511,10 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error("API proxy endpoint /ifapi not found. Run server with `node server.mjs`.");
+      throw new Error("API proxy endpoint /ifapi not found. Local hosting needs `node server.mjs`; production needs the deployed Pages Function.");
     }
     if (response.status === 503) {
-      throw new Error("Add INFINITE_FLIGHT_API_KEY to .env, then restart server.");
+      throw new Error("Infinite Flight API key is not configured on the server (INFINITE_FLIGHT_API_KEY).");
     }
     if (response.status === 401 || response.status === 403) {
       throw new Error("Infinite Flight API rejected authorization key.");
@@ -885,15 +697,6 @@ function renderFlightsSidebar(flights) {
       <strong>${escapeHtml(query ? t("noMatchingTitle") : t("noAirborneTitle"))}</strong>
       <span>${subText}</span>
     `;
-
-    if (!query && !state.demoMode) {
-      const demoBtn = document.createElement("button");
-      demoBtn.type = "button";
-      demoBtn.className = "empty-action-btn";
-      demoBtn.innerHTML = `<span>${escapeHtml(t("loadSimFlights"))}</span>`;
-      demoBtn.addEventListener("click", toggleDemoFleet);
-      empty.appendChild(demoBtn);
-    }
 
     elements.flightsList.replaceChildren(empty);
     return;
@@ -1439,7 +1242,7 @@ function getFlightId(flight) {
 
 async function hydrateFlightPlanForFlight(flight) {
   const flightId = getFlightId(flight);
-  if (!flightId || state.demoMode || !state.expertSessionId || state.flightPlansByFlightId.has(flightId) || state.requestedFlightPlans.has(flightId)) {
+  if (!flightId || !state.expertSessionId || state.flightPlansByFlightId.has(flightId) || state.requestedFlightPlans.has(flightId)) {
     return;
   }
 

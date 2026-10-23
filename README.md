@@ -40,6 +40,8 @@ Do not use VS Code Live Server for this app. Live Server may open `http://127.0.
 
 The API key stays on the local server and is never sent to the browser.
 
+The radar renders live data only. There is no simulated or demo fleet: if the proxy route or the Infinite Flight key is unavailable, the status pill switches to **Offline** and the toast reports the real error instead of showing placeholder flights.
+
 ## Map Tiles and the CARTO Watermark
 
 The map uses OpenStreetMap's standard tiles by default, with no basemap API key required. This is separate from the Infinite Flight key used to load live traffic.
@@ -64,6 +66,8 @@ Keep the visible map attribution. The default tiles follow the [OpenStreetMap ti
 ## Deploy
 
 Cloudflare Pages is the recommended host for this app. Static files are served from `public/`, and `/ifapi/*` is handled by a Cloudflare Pages Function so the Infinite Flight API key stays server-side.
+
+The browser always calls the same-origin `/ifapi` prefix, never the Infinite Flight API directly. Local `server.mjs` and the deployed Pages Function both implement that prefix, so a production deployment connects to its own deployed proxy without any front-end URL change.
 
 ### Cloudflare Pages
 

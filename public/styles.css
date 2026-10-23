@@ -267,12 +267,6 @@ button:focus-visible {
   color: var(--accent);
 }
 
-.metis-pill-btn.is-active {
-  background: var(--accent-badge);
-  color: var(--accent);
-  font-weight: 600;
-}
-
 .metis-pill-primary {
   background: var(--accent);
   color: #ffffff;
@@ -533,26 +527,6 @@ button:focus-visible {
   line-height: 1.45;
   color: var(--ink-3);
   max-width: 220px;
-}
-
-.empty-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 14px;
-  padding: 6px 14px;
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-full);
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--accent);
-  box-shadow: var(--shadow-btn);
-  transition: all 0.14s ease;
-}
-
-.empty-action-btn:hover {
-  background: var(--hover);
 }
 
 /* ==========================================================================
