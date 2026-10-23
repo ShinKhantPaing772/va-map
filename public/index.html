@@ -33,18 +33,16 @@
         </div>
 
         <div class="nav-actions-section">
-          <div class="live-count-chip">
+          <button
+            id="showSidebarButton"
+            class="live-count-chip"
+            type="button"
+            aria-controls="flightsSidebar"
+            aria-expanded="true"
+            title="Open fleet list"
+          >
             <span id="matchCount" class="count-num">0</span>
             <span id="airborneLabel" class="count-label">Airborne</span>
-          </div>
-
-          <button id="showSidebarButton" class="metis-pill-btn metis-pill-primary" type="button" aria-controls="flightsSidebar" aria-expanded="true">
-            <span id="pilotsBtnLabel">Pilots</span>
-            <span id="sidebarToggleCount" class="counter-badge">0</span>
-          </button>
-
-          <button id="langToggleButton" class="metis-pill-btn" type="button" title="Switch language / 切换语言">
-            <span id="langBtnLabel">中文</span>
           </button>
         </div>
 

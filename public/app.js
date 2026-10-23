@@ -16,7 +16,6 @@ const elements = {
   resetMapButton: document.querySelector("#resetMapButton"),
   flightsList: document.querySelector("#flightsList"),
   sidebarFlightCount: document.querySelector("#sidebarFlightCount"),
-  sidebarToggleCount: document.querySelector("#sidebarToggleCount"),
   hideSidebarButton: document.querySelector("#hideSidebarButton"),
   showSidebarButton: document.querySelector("#showSidebarButton"),
   connectionStatus: document.querySelector("#connectionStatus"),
@@ -49,9 +48,6 @@ const elements = {
   pilotSearchInput: document.querySelector("#pilotSearchInput"),
   searchClearButton: document.querySelector("#searchClearButton"),
   airborneLabel: document.querySelector("#airborneLabel"),
-  pilotsBtnLabel: document.querySelector("#pilotsBtnLabel"),
-  langToggleButton: document.querySelector("#langToggleButton"),
-  langBtnLabel: document.querySelector("#langBtnLabel"),
   flightsSidebarTitle: document.querySelector("#flightsSidebarTitle"),
   toast: document.querySelector("#toast"),
 };
@@ -79,8 +75,8 @@ function detectInitialLocale() {
 const I18N = {
   en: {
     airborne: "Airborne",
-    pilots: "Pilots",
     fleetTitle: "CZVG Fleet",
+    openFleetList: "Open fleet list",
     filterPlaceholder: "Filter fleet...",
     noMatchingTitle: "No matching flights",
     noMatchingSub: (q) => `No flights matching "${q}"`,
@@ -118,7 +114,7 @@ const I18N = {
   },
   zh: {
     airborne: "在飞",
-    pilots: "机组",
+    openFleetList: "打开机队列表",
     fleetTitle: "南航机队",
     filterPlaceholder: "搜索航班或飞行员...",
     noMatchingTitle: "无匹配航班",
@@ -241,12 +237,6 @@ if (elements.resetMapButton) elements.resetMapButton.addEventListener("click", f
 if (elements.hideSidebarButton) elements.hideSidebarButton.addEventListener("click", () => setSidebarHidden(true));
 if (elements.showSidebarButton) elements.showSidebarButton.addEventListener("click", () => setSidebarHidden(false));
 
-if (elements.langToggleButton) {
-  elements.langToggleButton.addEventListener("click", () => {
-    setLocale(state.locale === "zh" ? "en" : "zh");
-  });
-}
-
 window.addEventListener("storage", (e) => {
   if (e.key === LOCALE_STORAGE_KEY && (e.newValue === "zh" || e.newValue === "en")) {
     setLocale(e.newValue, false);
@@ -285,8 +275,7 @@ function setLocale(nextLocale, persist = true) {
 function applyLocaleStrings() {
   document.documentElement.lang = state.locale === "zh" ? "zh-CN" : "en";
   if (elements.airborneLabel) elements.airborneLabel.textContent = t("airborne");
-  if (elements.pilotsBtnLabel) elements.pilotsBtnLabel.textContent = t("pilots");
-  if (elements.langBtnLabel) elements.langBtnLabel.textContent = state.locale === "zh" ? "EN" : "中文";
+  if (elements.showSidebarButton) elements.showSidebarButton.title = t("openFleetList");
   if (elements.flightsSidebarTitle) elements.flightsSidebarTitle.textContent = t("fleetTitle");
   if (elements.pilotSearchInput) elements.pilotSearchInput.placeholder = t("filterPlaceholder");
 
@@ -377,7 +366,9 @@ function restoreSidebarPreference() {
 
 function setSidebarHidden(hidden, persist = true) {
   elements.mapShell.classList.toggle("sidebar-hidden", hidden);
-  elements.showSidebarButton.setAttribute("aria-expanded", String(!hidden));
+  if (elements.showSidebarButton) {
+    elements.showSidebarButton.setAttribute("aria-expanded", String(!hidden));
+  }
   if (persist) {
     try {
       window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(hidden));
@@ -670,7 +661,6 @@ function renderMarkers(flights) {
 function renderFlightsSidebar(flights) {
   const previousScrollTop = elements.flightsList.scrollTop;
   if (elements.sidebarFlightCount) elements.sidebarFlightCount.textContent = String(flights.length);
-  if (elements.sidebarToggleCount) elements.sidebarToggleCount.textContent = String(flights.length);
 
   const query = (state.filterQuery || "").trim().toLowerCase();
   const filtered = query
