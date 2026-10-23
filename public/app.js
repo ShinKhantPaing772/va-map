@@ -88,6 +88,7 @@ const I18N = {
     speed: "Speed",
     heading: "Heading",
     eta: "ETA",
+    etaPending: "Taxi / hold",
     route: "Route",
     leftSuffix: "left",
     statusLive: "Live",
@@ -103,7 +104,7 @@ const I18N = {
     scanningSub: "Active CZVG flights will appear here.",
     directVectors: "Direct / Vectors",
     noFlightPlanFiled: "No flight plan filed.",
-    routeUnavailable: "Route unavailable",
+    routeUnavailable: "No coordinates",
     loading: "Loading…",
     offRoute: "off route",
     flightPlanEstimate: "Flight-plan estimate",
@@ -127,6 +128,7 @@ const I18N = {
     speed: "地速",
     heading: "航向",
     eta: "预计到达",
+    etaPending: "滑行/等待",
     route: "航路",
     leftSuffix: "剩余",
     statusLive: "实时",
@@ -142,7 +144,7 @@ const I18N = {
     scanningSub: "在飞航班将在此显示。",
     directVectors: "直飞 / 雷达引导",
     noFlightPlanFiled: "未提交飞行计划",
-    routeUnavailable: "暂无航路",
+    routeUnavailable: "无坐标",
     loading: "加载中…",
     offRoute: "偏离航路",
     flightPlanEstimate: "计划航路预估",
@@ -279,8 +281,8 @@ function applyLocaleStrings() {
   if (elements.flightsSidebarTitle) elements.flightsSidebarTitle.textContent = t("fleetTitle");
   if (elements.pilotSearchInput) elements.pilotSearchInput.placeholder = t("filterPlaceholder");
 
-  const depLabel = document.querySelector(".departure-node span");
-  const arrLabel = document.querySelector(".arrival-node span");
+  const depLabel = document.querySelector(".departure-caption");
+  const arrLabel = document.querySelector(".arrival-caption");
   if (depLabel) depLabel.textContent = t("origin");
   if (arrLabel) arrLabel.textContent = t("destination");
 
@@ -952,15 +954,19 @@ function getMapRouteLatLngs(routePoints, aircraftLongitude) {
 function renderRouteMetrics(flight) {
   const flightPlan = state.flightPlansByFlightId.get(getFlightId(flight));
   const metrics = calculateRouteMetrics(flight, flightPlan);
+  const metaRow = document.querySelector(".route-progress-meta");
 
   if (!metrics) {
-    if (elements.routeEstimateStatus) elements.routeEstimateStatus.textContent = flightPlan ? t("routeUnavailable") : t("loading");
-    if (elements.plannedDistanceValue) elements.plannedDistanceValue.textContent = "-";
-    elements.travelledDistanceValue.textContent = "-";
-    elements.remainingDistanceValue.textContent = "-";
-    elements.routeProgressValue.textContent = "-";
-    if (elements.remainingTimeValue) elements.remainingTimeValue.textContent = "-";
-    elements.etaValue.textContent = "-";
+    const pending = flightPlan === undefined;
+    const statusText = pending ? t("loading") : t("routeUnavailable");
+    if (elements.routeEstimateStatus) elements.routeEstimateStatus.textContent = statusText;
+    if (elements.plannedDistanceValue) elements.plannedDistanceValue.textContent = "—";
+    elements.travelledDistanceValue.textContent = "—";
+    elements.routeProgressValue.textContent = statusText;
+    elements.remainingDistanceValue.textContent = "—";
+    if (elements.remainingTimeValue) elements.remainingTimeValue.textContent = "—";
+    elements.etaValue.textContent = "—";
+    if (metaRow) metaRow.dataset.state = pending ? "loading" : "unavailable";
     setRouteProgressBar(0);
     return;
   }
@@ -975,7 +981,11 @@ function renderRouteMetrics(flight) {
   elements.remainingDistanceValue.textContent = `${formatNauticalMiles(metrics.remainingNm)} ${t("leftSuffix")}`;
   elements.routeProgressValue.textContent = `${Math.round(metrics.progressPercent)}%`;
   if (elements.remainingTimeValue) elements.remainingTimeValue.textContent = formatDuration(metrics.remainingHours);
-  elements.etaValue.textContent = formatEta(metrics.remainingHours);
+  const speedKts = Number(flight.speed) || 0;
+  elements.etaValue.textContent = speedKts < 30
+    ? t("etaPending")
+    : formatEta(metrics.remainingHours);
+  if (metaRow) metaRow.dataset.state = "ready";
   setRouteProgressBar(metrics.progressPercent);
 }
 
@@ -1035,8 +1045,14 @@ function calculateRouteMetrics(flight, flightPlan) {
 }
 
 function getFlightPlanCoordinates(flightPlan) {
+  if (!flightPlan || typeof flightPlan !== "object") return [];
+
+  // Infinite Flight Live API: coordinates live on flightPlanItems[].location
+  // (and nested children for SID/STAR/approach). `waypoints` is a deprecated name list.
+  const fromItems = flattenFlightPlanItemCoordinates(flightPlan.flightPlanItems);
+  if (fromItems.length >= 2) return fromItems;
+
   const candidates = [
-    flightPlan.waypoints,
     flightPlan.routeCoordinates,
     flightPlan.coordinates,
     flightPlan.fixes,
@@ -1044,16 +1060,41 @@ function getFlightPlanCoordinates(flightPlan) {
   ];
 
   for (const candidate of candidates) {
-    if (!candidate) continue;
-    if (Array.isArray(candidate)) {
-      const parsed = candidate
-        .map(normalizeCoordinatePoint)
-        .filter((point) => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
-      if (parsed.length >= 2) return parsed;
-    }
+    if (!Array.isArray(candidate)) continue;
+    const parsed = candidate
+      .map((item) => normalizeCoordinatePoint(item?.location || item))
+      .filter(isUsableCoordinate);
+    if (parsed.length >= 2) return parsed;
   }
 
   return [];
+}
+
+function flattenFlightPlanItemCoordinates(items) {
+  if (!Array.isArray(items)) return [];
+  const points = [];
+
+  const walk = (item) => {
+    if (!item || typeof item !== "object") return;
+    const children = Array.isArray(item.children) ? item.children : null;
+    if (children && children.length > 0) {
+      children.forEach(walk);
+      return;
+    }
+    const point = normalizeCoordinatePoint(item.location || item);
+    if (isUsableCoordinate(point)) points.push(point);
+  };
+
+  items.forEach(walk);
+  return points;
+}
+
+function isUsableCoordinate(point) {
+  if (!point) return false;
+  if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) return false;
+  // Procedure parents often report 0/0 — skip those placeholders.
+  if (point.latitude === 0 && point.longitude === 0) return false;
+  return true;
 }
 
 function normalizeCoordinatePoint(item) {
@@ -1062,13 +1103,35 @@ function normalizeCoordinatePoint(item) {
     return { latitude: Number(item[0]), longitude: Number(item[1]) };
   }
   if (typeof item === "object") {
-    const lat = firstText(item.latitude, item.lat, item.Latitude, item.Lat);
-    const lon = firstText(item.longitude, item.lon, item.lng, item.Longitude, item.Lng);
+    const lat = firstText(
+      item.latitude,
+      item.lat,
+      item.Latitude,
+      item.Lat,
+      radiansToDegrees(item.latitudeRad),
+      radiansToDegrees(item.latRad),
+    );
+    const lon = firstText(
+      item.longitude,
+      item.lon,
+      item.lng,
+      item.Longitude,
+      item.Lng,
+      radiansToDegrees(item.longitudeRad),
+      radiansToDegrees(item.lonRad),
+      radiansToDegrees(item.lngRad),
+    );
     if (lat !== "----" && lon !== "----") {
       return { latitude: Number(lat), longitude: Number(lon) };
     }
   }
   return null;
+}
+
+function radiansToDegrees(value) {
+  const radians = Number(value);
+  if (!Number.isFinite(radians) || radians === 0) return null;
+  return (radians * 180) / Math.PI;
 }
 
 function findNearestPointOnRoute(point, routePoints) {

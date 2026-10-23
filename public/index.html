@@ -109,7 +109,6 @@
             <div class="route-airports-track">
               <div class="airport-node departure-node">
                 <strong id="originCode">ZGGG</strong>
-                <span>Origin</span>
               </div>
               <div class="route-progress-container">
                 <div id="routeProgressBar" class="route-track-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -118,16 +117,17 @@
                     <span class="material-symbols-rounded">flight</span>
                   </div>
                 </div>
-                <div class="route-progress-meta">
-                  <span id="travelledDistanceValue">-- NM</span>
-                  <span id="routeProgressValue">0%</span>
-                  <span id="remainingDistanceValue">-- NM left</span>
-                </div>
               </div>
               <div class="airport-node arrival-node">
                 <strong id="destinationCode">RJAA</strong>
-                <span>Destination</span>
               </div>
+              <span class="airport-caption departure-caption">Origin</span>
+              <div class="route-progress-meta" data-state="loading">
+                <span id="travelledDistanceValue">—</span>
+                <span id="routeProgressValue">Loading…</span>
+                <span id="remainingDistanceValue">—</span>
+              </div>
+              <span class="airport-caption arrival-caption">Destination</span>
             </div>
           </div>
 

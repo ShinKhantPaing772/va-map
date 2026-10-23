@@ -149,9 +149,10 @@ button:focus-visible {
   z-index: 1000;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-height: 40px;
   height: 40px;
-  padding: 0 8px 0 10px;
+  padding: 0 10px 0 10px;
   background: var(--surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -160,16 +161,18 @@ button:focus-visible {
 }
 
 .nav-brand-section {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 7px;
+  height: 100%;
 }
 
 .brand-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 20px;
+  height: 18px;
+  line-height: 0;
 }
 
 .brand-tailfin-icon {
@@ -179,9 +182,12 @@ button:focus-visible {
 }
 
 .brand-name {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  line-height: 1;
   color: var(--ink);
 }
 
@@ -189,11 +195,13 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 7px;
+  height: 22px;
+  padding: 0 7px;
   background: var(--green-tint);
   border-radius: 5px;
   font-size: 0.68rem;
   font-weight: 600;
+  line-height: 1;
   color: #196b2b;
 }
 
@@ -222,23 +230,25 @@ button:focus-visible {
 
 /* Actions Section — Benchmarked to Crew Center h-7/h-8 rounded-[6px] buttons */
 .nav-actions-section {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  height: 100%;
   gap: 6px;
 }
 
 .live-count-chip {
   display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
+  align-items: center;
+  gap: 5px;
   height: 28px;
-  padding: 0 8px;
+  padding: 0 6px;
   border: 0;
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
   color: inherit;
   font: inherit;
+  line-height: 1;
 }
 
 .live-count-chip:hover {
@@ -249,12 +259,14 @@ button:focus-visible {
   font-family: var(--font-mono);
   font-size: 0.84rem;
   font-weight: 700;
+  line-height: 1;
   color: var(--accent);
 }
 
 .count-label {
   font-size: 0.72rem;
   font-weight: 500;
+  line-height: 1;
   color: var(--ink-3);
 }
 
@@ -633,8 +645,16 @@ button:focus-visible {
 .route-airports-track {
   display: grid;
   grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+
+.airport-node {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
 }
 
 .airport-node strong {
@@ -645,21 +665,23 @@ button:focus-visible {
   line-height: 1;
 }
 
-.airport-node span {
-  display: block;
+.airport-caption {
   font-size: 0.62rem;
+  font-weight: 500;
   color: var(--ink-3);
-  margin-top: 2px;
+  line-height: 1;
 }
 
-.arrival-node {
+.arrival-node,
+.arrival-caption {
   text-align: right;
+  justify-self: end;
 }
 
 .route-progress-container {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  min-height: 20px;
 }
 
 .route-track-bar {
@@ -702,9 +724,18 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  min-height: 14px;
   font-family: var(--font-mono);
   font-size: 0.64rem;
+  line-height: 1;
   color: var(--ink-3);
+}
+
+.route-progress-meta[data-state="loading"] #routeProgressValue,
+.route-progress-meta[data-state="unavailable"] #routeProgressValue {
+  flex: 1;
+  text-align: center;
 }
 
 /* 4-Item Telemetry Row (Clean stat bar, NO boxes) */
