@@ -869,37 +869,45 @@ button:focus-visible {
   position: relative;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   cursor: pointer;
   transform: rotate(var(--heading, 0deg));
   transform-origin: center;
   transition: transform 0.2s ease-out;
+  color: var(--accent);
 }
 
 .plane-svg {
-  width: 24px;
-  height: 24px;
-  fill: var(--accent);
-  stroke: #ffffff;
-  stroke-width: 1.2px;
-  filter: drop-shadow(0 2px 4px rgba(0, 58, 116, 0.28));
-  transition: fill 0.15s ease, transform 0.15s ease;
+  width: 30px;
+  height: 30px;
+  color: inherit;
+  overflow: visible;
+  filter:
+    drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 2px 3px rgba(0, 58, 116, 0.35));
+  transition: color 0.15s ease, transform 0.15s ease, filter 0.15s ease;
 }
 
 .plane-marker:hover .plane-svg {
-  fill: var(--accent-sky);
-  transform: scale(1.08);
+  color: var(--accent-sky);
+  transform: scale(1.1);
+}
+
+.plane-marker.is-selected {
+  color: var(--kapok-red);
 }
 
 .plane-marker.is-selected .plane-svg {
-  fill: var(--kapok-red);
+  filter:
+    drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 2px 5px rgba(180, 35, 45, 0.4));
 }
 
 .plane-marker.is-selected::after {
   content: "";
   position: absolute;
-  inset: 5px;
+  inset: 4px;
   border: 2px solid var(--kapok-red);
   border-radius: 50%;
   animation: plane-ping-ring 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
@@ -910,8 +918,8 @@ button:focus-visible {
   100% { transform: scale(1.6); opacity: 0; }
 }
 
-.plane-marker.reason-cz .plane-svg {
-  fill: var(--orange);
+.plane-marker.reason-cz {
+  color: var(--orange);
 }
 
 /* Tooltip on Aircraft Hover */

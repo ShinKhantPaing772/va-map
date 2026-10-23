@@ -763,16 +763,23 @@ function makePlaneIcon(flight, selected = false) {
   return L.divIcon({
     className: "",
     html: element.outerHTML,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
   });
 }
 
 function makePlaneMarkerElement(flight) {
   const element = document.createElement("div");
   element.setAttribute("aria-label", `Select flight ${flight.callsign || ""}`);
-  element.innerHTML = `<svg viewBox="0 0 24 24" class="plane-svg" aria-hidden="true">
-    <path d="M12 2c-.6 0-1.1.4-1.3 1L8.5 9.5 2.2 11c-.7.2-1.2.8-1.2 1.5 0 .8.6 1.4 1.4 1.4l6.1-.5 2.5 7.6H9.8c-.4 0-.8.3-.9.7l-.4 1.3h7l-.4-1.3c-.1-.4-.5-.7-.9-.7h-1.2l2.5-7.6 6.1.5c.8 0 1.4-.6 1.4-1.4 0-.7-.5-1.3-1.2-1.5L15.5 9.5 13.3 3c-.2-.6-.7-1-1.3-1z"/>
+  // Top-down widebody silhouette (nose up). Rotated via --heading.
+  element.innerHTML = `<svg viewBox="0 0 64 64" class="plane-svg" aria-hidden="true">
+    <g fill="currentColor" stroke="#ffffff" stroke-width="1.55" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M32 3.2c-1.5 0-2.7 1.1-3.1 2.6L26.2 22.5 7.8 31.2c-1.1.5-1.8 1.6-1.8 2.8 0 1.4 1.1 2.5 2.5 2.5h.3l17.4-2.2 1.2 14.8-8.6 5.4c-.7.4-1.1 1.2-1.1 2v1.3c0 .9.7 1.6 1.6 1.6h.2L29.8 55l1.1 6.2c.2 1.1 1.1 1.9 2.2 1.9s2-.8 2.2-1.9L36.4 55l10.3 4.4h.2c.9 0 1.6-.7 1.6-1.6v-1.3c0-.8-.4-1.6-1.1-2l-8.6-5.4 1.2-14.8 17.4 2.2h.3c1.4 0 2.5-1.1 2.5-2.5 0-1.2-.7-2.3-1.8-2.8L37.8 22.5 35.1 5.8C34.7 4.3 33.5 3.2 32 3.2z"/>
+      <ellipse cx="18.2" cy="33.2" rx="3.05" ry="1.65"/>
+      <ellipse cx="45.8" cy="33.2" rx="3.05" ry="1.65"/>
+    </g>
+    <path d="M32 8.8v13.6" fill="none" stroke="#ffffff" stroke-width="1.15" stroke-linecap="round" opacity="0.55"/>
+    <circle cx="32" cy="7.15" r="1.3" fill="#ffffff"/>
   </svg>`;
   updateMarkerElement(element, flight.matchReason);
   return element;
