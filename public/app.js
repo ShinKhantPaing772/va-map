@@ -50,9 +50,41 @@ const elements = {
   airborneLabel: document.querySelector("#airborneLabel"),
   flightsSidebarTitle: document.querySelector("#flightsSidebarTitle"),
   toast: document.querySelector("#toast"),
+  themeToggleButton: document.querySelector("#themeToggleButton"),
+  halloweenAtmosphere: document.querySelector("#halloweenAtmosphere"),
+  brandPumpkinBadge: document.querySelector("#brandPumpkinBadge"),
 };
 
 const LOCALE_STORAGE_KEY = "czvg:locale";
+const THEME_STORAGE_KEY = "czvg_theme";
+
+function isHalloweenSeasonDate() {
+  const now = new Date();
+  const m = now.getMonth(); // 9 = Oct, 10 = Nov
+  const d = now.getDate();
+  return (m === 9 && d >= 24) || (m === 10 && d <= 5);
+}
+
+function detectInitialTheme() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get("theme");
+    if (fromQuery === "halloween" || fromQuery === "light" || fromQuery === "standard") {
+      return fromQuery === "halloween" ? "halloween" : "light";
+    }
+  } catch {
+    // Ignore URL parsing errors
+  }
+  try {
+    const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === "halloween" || saved === "light" || saved === "dark") {
+      return saved === "halloween" ? "halloween" : "light";
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return isHalloweenSeasonDate() ? "halloween" : "light";
+}
 
 function detectInitialLocale() {
   try {
@@ -114,6 +146,10 @@ const I18N = {
     zoomOut: "Zoom out",
     fitFlights: "Fit flights",
     close: "Close",
+    halloweenThemeActive: "Halloween Theme: Active (Click to switch to Standard)",
+    halloweenThemeInactive: "Halloween Theme: Inactive (Click to activate)",
+    halloweenThemeLabel: "Halloween",
+    standardThemeLabel: "Standard",
   },
   zh: {
     airborne: "在飞",
@@ -156,11 +192,16 @@ const I18N = {
     zoomOut: "缩小",
     fitFlights: "聚焦所有在飞航班",
     close: "关闭",
+    halloweenThemeActive: "万圣节主题：已开启（点击切回标准模式）",
+    halloweenThemeInactive: "万圣节主题：已关闭（点击开启）",
+    halloweenThemeLabel: "万圣夜",
+    standardThemeLabel: "标准",
   },
 };
 
 const state = {
   locale: detectInitialLocale(),
+  theme: detectInitialTheme(),
   connectionStatusKey: "connecting",
   connectionLabelKey: "statusConnecting",
   running: false,
@@ -194,16 +235,94 @@ const selectedRoutePane = map.createPane("selectedRoute");
 selectedRoutePane.style.zIndex = "450";
 selectedRoutePane.style.pointerEvents = "none";
 
+let currentTileLayer = null;
+let cachedCartoKey = "";
+
+const GHOST_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ghost-icon"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>`;
+const MOON_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>`;
+
+function getBasemapTileUrl(theme) {
+  if (theme === "halloween") {
+    return cachedCartoKey
+      ? `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${encodeURIComponent(cachedCartoKey)}`
+      : "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png";
+  }
+  return cachedCartoKey
+    ? `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(cachedCartoKey)}`
+    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+}
+
+function applyThemeTiles(theme) {
+  if (currentTileLayer) {
+    const tileUrl = getBasemapTileUrl(theme);
+    currentTileLayer.setUrl(tileUrl);
+  }
+}
+
+function setTheme(nextTheme, persist = true) {
+  state.theme = nextTheme === "halloween" ? "halloween" : "light";
+  const root = document.documentElement;
+  const isHalloween = state.theme === "halloween";
+
+  if (isHalloween) {
+    root.setAttribute("data-theme", "halloween");
+    root.classList.add("theme-halloween");
+    root.classList.remove("light");
+  } else {
+    root.setAttribute("data-theme", "light");
+    root.classList.remove("theme-halloween");
+    root.classList.add("light");
+  }
+
+  if (elements.themeToggleButton) {
+    elements.themeToggleButton.setAttribute("aria-pressed", isHalloween ? "true" : "false");
+    elements.themeToggleButton.title = isHalloween
+      ? t("halloweenThemeActive")
+      : t("halloweenThemeInactive");
+    const labelSpan = elements.themeToggleButton.querySelector(".theme-toggle-label");
+    if (labelSpan) {
+      labelSpan.textContent = isHalloween ? t("halloweenThemeLabel") : t("standardThemeLabel");
+    }
+    const iconSpan = elements.themeToggleButton.querySelector(".theme-toggle-icon");
+    if (iconSpan) {
+      iconSpan.innerHTML = isHalloween ? GHOST_ICON_SVG : MOON_ICON_SVG;
+    }
+  }
+
+  if (elements.halloweenAtmosphere) {
+    elements.halloweenAtmosphere.style.display = isHalloween ? "block" : "none";
+  }
+
+  applyThemeTiles(state.theme);
+
+  if (state.selectedFlightId) {
+    const selected = state.flights.find((item) => getFlightId(item) === String(state.selectedFlightId));
+    if (selected) renderSelectedRoute(selected);
+  }
+
+  if (persist) {
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, state.theme);
+    } catch {
+      // Ignore storage errors
+    }
+    try {
+      window.parent?.postMessage({ type: "czvg:theme", theme: state.theme }, "*");
+    } catch {
+      // Ignore cross-origin errors
+    }
+  }
+}
+
 loadBasemap();
 
 async function loadBasemap() {
-  let cartoKey = "";
   try {
     const response = await fetch("/map-config", { signal: AbortSignal.timeout(3000) });
     if (response.ok) {
       const config = await response.json();
       if (typeof config.cartoBasemapApiKey === "string" && config.cartoBasemapApiKey.trim()) {
-        cartoKey = config.cartoBasemapApiKey.trim();
+        cachedCartoKey = config.cartoBasemapApiKey.trim();
       }
     }
   } catch {
@@ -217,13 +336,9 @@ async function loadBasemap() {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
   };
 
-  // Use direct basemaps.cartocdn.com URL without sharding subdomains or retina suffixes
-  const tileUrl = cartoKey
-    ? `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(cartoKey)}`
-    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-
-  const layer = L.tileLayer(tileUrl, options);
-  layer.addTo(map);
+  const tileUrl = getBasemapTileUrl(state.theme);
+  currentTileLayer = L.tileLayer(tileUrl, options);
+  currentTileLayer.addTo(map);
 }
 
 requestAnimationFrame(() => {
@@ -242,10 +357,26 @@ if (elements.zoomOutButton) elements.zoomOutButton.addEventListener("click", () 
 if (elements.resetMapButton) elements.resetMapButton.addEventListener("click", fitToFlights);
 if (elements.hideSidebarButton) elements.hideSidebarButton.addEventListener("click", () => setSidebarHidden(true));
 if (elements.showSidebarButton) elements.showSidebarButton.addEventListener("click", () => setSidebarHidden(false));
+if (elements.themeToggleButton) {
+  elements.themeToggleButton.addEventListener("click", () => {
+    setTheme(state.theme === "halloween" ? "light" : "halloween");
+  });
+}
+
+// Initial theme bootstrap & ready handshake
+setTheme(state.theme, false);
+try {
+  window.parent?.postMessage({ type: "czvg:ready" }, "*");
+} catch {
+  // Ignore cross-origin errors
+}
 
 window.addEventListener("storage", (e) => {
   if (e.key === LOCALE_STORAGE_KEY && (e.newValue === "zh" || e.newValue === "en")) {
     setLocale(e.newValue, false);
+  }
+  if (e.key === THEME_STORAGE_KEY && (e.newValue === "halloween" || e.newValue === "light" || e.newValue === "dark")) {
+    setTheme(e.newValue === "halloween" ? "halloween" : "light", false);
   }
 });
 
@@ -253,6 +384,9 @@ window.addEventListener("message", (event) => {
   if (event.data && typeof event.data === "object") {
     if (event.data.type === "czvg:locale" && (event.data.locale === "zh" || event.data.locale === "en")) {
       setLocale(event.data.locale, false);
+    }
+    if (event.data.type === "czvg:theme" && (event.data.theme === "halloween" || event.data.theme === "light" || event.data.theme === "dark")) {
+      setTheme(event.data.theme === "halloween" ? "halloween" : "light", false);
     }
   }
 });
@@ -284,6 +418,17 @@ function applyLocaleStrings() {
   if (elements.showSidebarButton) elements.showSidebarButton.title = t("openFleetList");
   if (elements.flightsSidebarTitle) elements.flightsSidebarTitle.textContent = t("fleetTitle");
   if (elements.pilotSearchInput) elements.pilotSearchInput.placeholder = t("filterPlaceholder");
+
+  if (elements.themeToggleButton) {
+    const isHalloween = state.theme === "halloween";
+    elements.themeToggleButton.title = isHalloween
+      ? t("halloweenThemeActive")
+      : t("halloweenThemeInactive");
+    const labelSpan = elements.themeToggleButton.querySelector(".theme-toggle-label");
+    if (labelSpan) {
+      labelSpan.textContent = isHalloween ? t("halloweenThemeLabel") : t("standardThemeLabel");
+    }
+  }
 
   const depLabel = document.querySelector(".departure-caption");
   const arrLabel = document.querySelector(".arrival-caption");
@@ -944,7 +1089,7 @@ function renderSelectedRoute(flight) {
   L.polyline(latLngs, {
     pane: "selectedRoute",
     interactive: false,
-    color: "#0052a5",
+    color: state.theme === "halloween" ? "#ea580c" : "#0052a5",
     weight: 2.5,
     opacity: 1,
     dashArray: "2 6",
